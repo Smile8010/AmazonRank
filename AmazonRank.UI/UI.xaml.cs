@@ -145,18 +145,34 @@ namespace AmazonRank.UI
         /// <param name="client"></param>
         /// <param name="keyWord"></param>
         /// <param name="Asin"></param>
-        //private async Task<Result<object>> seachKeyWordAsinRank(HttpClient client,string link, string keyWord, string Asin,int page = 1)
-        //{
-        //    try
-        //    {
-        //        string requestURL = $"{link}/s?k={keyWord}";
-        //        var searchResponse = await client.GetAsync(requestURL);
-        //    }
-        //    catch (Exception ex)
-        //    {
+        private async Task<Result<object>> seachKeyWordAsinRank(HttpClient client, string link, string keyWord, string Asin, int page = 1)
+        {
+            try
+            {
+                string requestURL = $"{link}/s?k={keyWord}";
+                if (page > 1) {
+                    requestURL = $"{requestURL}&page={page}";
+                }
+                var searchResponse = await client.GetAsync(requestURL);
+                searchResponse.EnsureSuccessStatusCode();
 
-        //    }
-        //}
+                HtmlDocument document = new HtmlDocument();
+                string searchHtml = await searchResponse.Content.ReadAsStringAsync();
+
+                await Task.Run(() => document.LoadHtml(searchHtml));
+
+                var nodes = await Task.Run(() => document.DocumentNode.SelectNodes("//*[@id='search']/div[1]/div[2]/div/span[3]/div[1]/div"));
+
+                // nodes 里寻找
+
+                return null;
+
+            }
+            catch (Exception ex)
+            {
+                return Result<object>.Error($"搜索异常：{ex.Message}");
+            }
+        }
 
         /// <summary>
         /// 获取所有行文本
