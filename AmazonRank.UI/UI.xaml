@@ -34,7 +34,7 @@
             </ComboBox>
             <Label Grid.Column="1" Grid.Row="0" Content="ASIN:" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
             <TextBox Name="TBox_Asin" Grid.Column="2" Grid.Row="0" Margin="0,11,0,10" VerticalContentAlignment="Center"  />
-            <Button Name="Btn_Query" Grid.Column="3" Grid.Row="0" Content="查询" Margin="21,11,312,10" />
+            <Button Name="Btn_Query" Grid.Column="3" Grid.Row="0" Content="查询" Margin="21,11,312,10" Click="Btn_Query_Click" />
             <Grid Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
