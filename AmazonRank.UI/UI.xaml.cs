@@ -59,36 +59,97 @@ namespace AmazonRank.UI
                 return;
             }
 
+            setSearchStatus(false);
+
             using (HttpClient client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }))
             {
+                client.Timeout = new TimeSpan(0, 0, 1, 0);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
                 dynamic selectValue = this.CBox_Country.SelectedValue;
-                Result<object> initResult = await initQuery(client, selectValue.Link, selectValue.ZipCode);
+                Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
                 if (!initResult.Success)
                 {
-                    Ouput(initResult.Msg);
+                    OuputLine(initResult.Msg);
                     return;
                 }
 
+                string Link = selectValue.Value.Link;
 
+                //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
+
+                foreach (var kewWords in lines)
+                {
+                    OuputLine($"开始搜索关键字：【{kewWords}】");
+                    var searchResult = await seachKeyWordAsinRankAsync(client, new SearchModel
+                    {
+                        Asin = asin,
+                        KeyWord = kewWords,
+                        Link = Link
+                    });
+
+                    if (!searchResult.Success)
+                    {
+                        OuputLine(searchResult.Msg);
+                    }
+                    else
+                    {
+                        //await Task.Run(() => Task.Delay(2000));
+                        string outputMsg = string.Empty;
+                        var sModel = searchResult.Data;
+                        if (sModel.SResult == null)
+                        {
+                            outputMsg = $"当前搜索完成，没有找到 关键字：【{kewWords}】 对应的 Asin：【{asin}】";
+                        }
+                        else
+                        {
+                            outputMsg = $"搜索完成，关键字：【{kewWords}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                        }
+
+                        OuputLine(outputMsg);
+                    }
+                }
+
+                setSearchStatus(true);
             }
+        }
+
+        /// <summary>
+        /// 设置搜索状态
+        /// </summary>
+        /// <param name="enabled"></param>
+        private void setSearchStatus(bool enabled)
+        {
+            this.CBox_Country.IsEnabled = enabled;
+            this.TBox_Asin.IsEnabled = enabled;
+            this.Btn_Query.IsEnabled = enabled;
+            this.TBox_KeyWords.IsEnabled = enabled;
         }
 
         /// <summary>
         /// 文本输出
         /// </summary>
         /// <param name="msg"></param>
-        /// <param name="isClear"></param>
-        private void Ouput(string msg, bool isClear = false)
+        private void Ouput(string msg)
         {
-            if (isClear)
+            if (this.TBox_Output.LineCount > 200)
             {
                 this.TBox_Output.Clear();
+                this.TBox_Output.AppendText("清空缓存...\r\n");
             }
-            this.TBox_Output.AppendText(msg + Environment.NewLine);
+            this.TBox_Output.AppendText(msg);
         }
+
+        /// <summary>
+        /// 文本输出
+        /// </summary>
+        /// <param name="msg"></param>
+        private void OuputLine(string msg)
+        {
+            Ouput(msg + "\r\n");
+        }
+
 
         /// <summary>
         /// 
@@ -96,7 +157,7 @@ namespace AmazonRank.UI
         /// <param name="client"></param>
         /// <param name="link"></param>
         /// <param name="zipCode"></param>
-        private async Task<Result<object>> initQuery(HttpClient client, string link, string zipCode)
+        private async Task<Result<object>> initQueryAsyn(HttpClient client, string link, string zipCode)
         {
             try
             {
@@ -145,15 +206,17 @@ namespace AmazonRank.UI
         /// <param name="client"></param>
         /// <param name="keyWord"></param>
         /// <param name="Asin"></param>
-        private async Task<Result<object>> seachKeyWordAsinRank(HttpClient client, string link, string keyWord, string Asin, int page = 1)
+        private async Task<Result<SearchModel>> seachKeyWordAsinRankAsync(HttpClient client, SearchModel sModel)
         {
             try
             {
-                string requestURL = $"{link}/s?k={keyWord}";
-                if (page > 1) {
-                    requestURL = $"{requestURL}&page={page}";
+                string requestURL = $"{sModel.Link}/s?k={sModel.KeyWord}";
+                if (sModel.Page > 1)
+                {
+                    requestURL = $"{requestURL}&page={sModel.Page}";
                 }
-                var searchResponse = await client.GetAsync(requestURL);
+                var searchResponse = await client.GetAsync(new Uri(requestURL));
+
                 searchResponse.EnsureSuccessStatusCode();
 
                 HtmlDocument document = new HtmlDocument();
@@ -161,16 +224,69 @@ namespace AmazonRank.UI
 
                 await Task.Run(() => document.LoadHtml(searchHtml));
 
-                var nodes = await Task.Run(() => document.DocumentNode.SelectNodes("//*[@id='search']/div[1]/div[2]/div/span[3]/div[1]/div"));
+                HtmlNode containNode = document.DocumentNode.SelectSingleNode("//*[@id='search']");
 
-                // nodes 里寻找
+                if (containNode == null)
+                {
+                    return Result<SearchModel>.Error("找不到 id = search 的元素！");
+                }
 
-                return null;
+                if (sModel.Page == 1)
+                {
+                    // 赋值总页数
+                    var pageLi = containNode.SelectNodes("//div[1]/div[2]/div/span[7]/div/div/div/ul/li");
+                    if (pageLi != null)
+                    {
+                        if (pageLi.Count > 2)
+                        {
+                            var totalNode = pageLi[pageLi.Count - 2];
+                            int totalPage = 0;
+                            if (int.TryParse(totalNode.InnerText, out totalPage))
+                            {
+                                sModel.TotalPage = totalPage;
+                            }
+                        }
+
+                    }
+                }
+
+                var nodes = containNode.SelectNodes("//div[1]/div[2]/div/span[3]/div[1]/div");
+                int pos = 0;
+                foreach (var node in nodes)
+                {
+                    sModel.Rank++;
+                    pos++;
+                    string asin = node.Attributes["data-asin"].Value;
+                    if (asin.Equals(sModel.Asin))
+                    {
+                        // 查询是否广告
+                        var sponsoredNode = node.SelectSingleNode("//div/div/div/div/div/div[2]/div[2]/div/div[1]/div/span[1]");
+
+                        // 查询详情地址
+                        var aNode = node.SelectSingleNode("//div/div/div/div/div/div[2]/div[1]/div/div/span/a");
+
+                        sModel.SResult = new SearchResult
+                        {
+                            Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】",
+                            IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
+                            DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
+                        };
+                    }
+                }
+                sModel.Page++;
+
+                if (sModel.SResult != null || sModel.Page > sModel.TotalPage)
+                {
+                    return Result<SearchModel>.OK("搜索完成", sModel);
+                }
+
+
+                return await seachKeyWordAsinRankAsync(client, sModel);
 
             }
             catch (Exception ex)
             {
-                return Result<object>.Error($"搜索异常：{ex.Message}");
+                return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
             }
         }
 
