@@ -28,15 +28,61 @@ namespace AmazonRank.UI
     /// </summary>
     public partial class UI : Window
     {
+        string proxyIpAddress = string.Empty;
         public UI()
         {
             InitializeComponent();
-            this.CBox_Country.ItemsSource = new List<dynamic>
+
+            //List<string> countryList = getCountryKeys();
+            var countryList = getCountryComboBoxData();
+            if (countryList.Count <= 0)
             {
-               new { Key="美",Value = new { Link="https://www.amazon.com",ZipCode="10041" }  }
-            };
+                MessageBox.Show("请配置国家数据!");
+                return;
+            }
+
+            proxyIpAddress = getConfigValue("Proxy.IPAddress");
+
+            this.CBox_Country.ItemsSource = countryList.ConvertAll(o => new
+            {
+                Key = o.CountryName
+                ,
+                Value = new
+                {
+                    o.Link,
+                    o.ZipCode,
+                    o.isProxy
+                }
+            });
 
             this.CBox_Country.SelectedIndex = 0;
+        }
+
+        /// <summary>
+        /// 获取国家下拉框数据
+        /// </summary>
+        /// <returns></returns>
+        private List<CountryModel> getCountryComboBoxData()
+        {
+            // 获取下拉框配置
+            string countryKeyStr = getConfigValue("Country.CfgKeys");
+            var countryList = countryKeyStr.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            List<CountryModel> list = new List<CountryModel>();
+
+            countryList.ForEach(key =>
+            {
+                string countryDataStr = getConfigValue($"Country.{key}");
+                if (!IsNullOrEmpty(countryDataStr))
+                {
+                    CountryModel country = DeserializeObject<CountryModel>(countryDataStr);
+                    if (country != null)
+                    {
+                        list.Add(country);
+                    }
+                }
+            });
+
+            return list;
         }
 
         private async void Btn_Query_Click(object sender, RoutedEventArgs e)
@@ -79,14 +125,20 @@ namespace AmazonRank.UI
 
             setSearchStatus(false);
 
-
-            using (HttpClient client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }))
+            dynamic selectValue = this.CBox_Country.SelectedValue;
+            HttpClientHandler handler = new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip };
+            if (selectValue.Value.isProxy && !IsNullOrEmpty(proxyIpAddress))
+            {
+                handler.UseProxy = true;
+                handler.Proxy = new WebProxy(proxyIpAddress);
+            };
+            using (HttpClient client = new HttpClient(handler))
             {
                 client.Timeout = new TimeSpan(0, 0, 1, 0);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
-                dynamic selectValue = this.CBox_Country.SelectedValue;
+
                 OuputLine($"初始化加载器...");
                 Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
                 if (!initResult.Success)
@@ -392,6 +444,35 @@ namespace AmazonRank.UI
             this.Label_PageProcess.Content = $"{current}/{total}";
         }
 
+        /// <summary>
+        /// 获取配置值
+        /// </summary>
+        /// <param name="configKey"></param>
+        /// <returns></returns>
+        private string getConfigValue(string configKey, string defaultValue = "")
+        {
+            if (IsNullOrEmpty(configKey)) { return defaultValue; }
+            return System.Configuration.ConfigurationManager.AppSettings[configKey] ?? defaultValue;
+        }
+
+        /// <summary>
+        /// 字符串转实体
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="jsonStr"></param>
+        /// <returns></returns>
+        private T DeserializeObject<T>(string jsonStr) where T : class
+        {
+            try
+            {
+                T entity = JsonConvert.DeserializeObject<T>(jsonStr);
+                return entity;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 
     //public class ProcessLabel
