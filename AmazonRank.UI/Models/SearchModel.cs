@@ -30,5 +30,7 @@ namespace AmazonRank.UI
         public bool IsSponsored { get; set; } = false;
 
         public string DetailLink { get; set; } = string.Empty;
+
+        public int PosIndex { get; set; } = 0;
     }
 }

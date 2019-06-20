@@ -1,4 +1,6 @@
-﻿using HtmlAgilityPack;
+﻿using AmazonRank.UI.UserCtrls;
+using AmazonRank.UI.UserWins;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -59,6 +61,22 @@ namespace AmazonRank.UI
                 return;
             }
 
+            //var dialogWin1 = new DialogWin();
+            //dialogWin1.Title = "搜索结果";
+            //SResultUCtrl srUCtrl1 = new SResultUCtrl();
+            //srUCtrl1.UpdateDataSource(new List<SearchModel> {
+            //    new SearchModel
+            //    {
+            //     Asin=asin,
+            //     KeyWord="ddd",
+            //     SResult = new SearchResult()
+            //    }
+            //});
+            //dialogWin1.Container.Children.Add(srUCtrl1);
+            //dialogWin1.ShowDialog();
+
+            //return;
+
             setSearchStatus(false);
 
             using (HttpClient client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }))
@@ -68,6 +86,7 @@ namespace AmazonRank.UI
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
                 dynamic selectValue = this.CBox_Country.SelectedValue;
+                OuputLine($"初始化加载器...");
                 Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
                 if (!initResult.Success)
                 {
@@ -78,7 +97,7 @@ namespace AmazonRank.UI
                 string Link = selectValue.Value.Link;
 
                 //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
-
+                List<SearchModel> queryResultList = new List<SearchModel>();
                 foreach (var kewWords in lines)
                 {
                     OuputLine($"开始搜索关键字：【{kewWords}】");
@@ -95,7 +114,6 @@ namespace AmazonRank.UI
                     }
                     else
                     {
-                        //await Task.Run(() => Task.Delay(2000));
                         string outputMsg = string.Empty;
                         var sModel = searchResult.Data;
                         if (sModel.SResult == null)
@@ -105,6 +123,7 @@ namespace AmazonRank.UI
                         else
                         {
                             outputMsg = $"搜索完成，关键字：【{kewWords}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                            queryResultList.Add(sModel);
                         }
 
                         OuputLine(outputMsg);
@@ -112,6 +131,18 @@ namespace AmazonRank.UI
                 }
 
                 setSearchStatus(true);
+
+                if (queryResultList.Count > 0)
+                {
+                    var dialogWin = new DialogWin();
+                    dialogWin.Title = "搜索结果";
+                    dialogWin.Width = 450;
+                    dialogWin.Height = 200;
+                    SResultUCtrl srUCtrl = new SResultUCtrl();
+                    srUCtrl.UpdateDataSource(queryResultList);
+                    dialogWin.Container.Children.Add(srUCtrl);
+                    dialogWin.Show();
+                }
             }
         }
 
@@ -165,9 +196,12 @@ namespace AmazonRank.UI
                 indexHtmlResponse.EnsureSuccessStatusCode();
 
                 string indexHtml = await indexHtmlResponse.Content.ReadAsStringAsync();
-                HtmlDocument document = new HtmlDocument();
 
-                await Task.Run(() => document.LoadHtml(indexHtml));
+                HtmlDocument document = await CheckIsAntiReptilePageAsync(indexHtml);
+
+                //HtmlDocument document = new HtmlDocument();
+
+                //await Task.Run(() => document.LoadHtml(indexHtml));
 
                 //设置地区
                 List<KeyValuePair<string, string>> paramsList = new List<KeyValuePair<string, string>>() {
@@ -219,10 +253,10 @@ namespace AmazonRank.UI
 
                 searchResponse.EnsureSuccessStatusCode();
 
-                HtmlDocument document = new HtmlDocument();
                 string searchHtml = await searchResponse.Content.ReadAsStringAsync();
 
-                await Task.Run(() => document.LoadHtml(searchHtml));
+                HtmlDocument document = await CheckIsAntiReptilePageAsync(searchHtml);
+
 
                 HtmlNode containNode = document.DocumentNode.SelectSingleNode("//*[@id='search']");
 
@@ -267,6 +301,7 @@ namespace AmazonRank.UI
 
                         sModel.SResult = new SearchResult
                         {
+                            PosIndex = pos,
                             Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】",
                             IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
                             DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
@@ -311,6 +346,20 @@ namespace AmazonRank.UI
                 }
             }
             return lines;
+        }
+
+        /// <summary>
+        /// 检查是否反爬虫界面
+        /// </summary>
+        private async Task<HtmlDocument> CheckIsAntiReptilePageAsync(string html)
+        {
+            HtmlDocument document = new HtmlDocument();
+            await Task.Run(() => document.LoadHtml(html));
+            var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
+            if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords")) {
+                throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
+            }
+            return document;
         }
     }
 }

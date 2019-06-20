@@ -67,6 +67,12 @@
     <Compile Include="UI.xaml.cs">
       <DependentUpon>UI.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UserCtrls\SResultUCtrl.xaml.cs">
+      <DependentUpon>SResultUCtrl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UserWins\DialogWin.xaml.cs">
+      <DependentUpon>DialogWin.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -80,6 +86,14 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="UI.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserCtrls\SResultUCtrl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserWins\DialogWin.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
