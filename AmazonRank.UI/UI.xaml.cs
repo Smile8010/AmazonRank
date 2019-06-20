@@ -28,7 +28,6 @@ namespace AmazonRank.UI
     /// </summary>
     public partial class UI : Window
     {
-
         public UI()
         {
             InitializeComponent();
@@ -49,7 +48,8 @@ namespace AmazonRank.UI
                 return;
             }
             List<string> lines = getLinesText(this.TBox_KeyWords);
-            if (lines.Count <= 0)
+            int linesCount = lines.Count;
+            if (linesCount <= 0)
             {
                 MessageBox.Show("输入关键字!");
                 return;
@@ -79,6 +79,7 @@ namespace AmazonRank.UI
 
             setSearchStatus(false);
 
+
             using (HttpClient client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }))
             {
                 client.Timeout = new TimeSpan(0, 0, 1, 0);
@@ -98,8 +99,10 @@ namespace AmazonRank.UI
 
                 //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
                 List<SearchModel> queryResultList = new List<SearchModel>();
+                int current = 1;
                 foreach (var kewWords in lines)
                 {
+                    updateKwProcessLabelText(current++, linesCount);
                     OuputLine($"开始搜索关键字：【{kewWords}】");
                     var searchResult = await seachKeyWordAsinRankAsync(client, new SearchModel
                     {
@@ -244,6 +247,7 @@ namespace AmazonRank.UI
         {
             try
             {
+                updatePageProcessLabelText(sModel.Page, sModel.TotalPage);
                 string requestURL = $"{sModel.Link}/s?k={sModel.KeyWord}";
                 if (sModel.Page > 1)
                 {
@@ -308,14 +312,14 @@ namespace AmazonRank.UI
                         };
                     }
                 }
-                sModel.Page++;
 
-                if (sModel.SResult != null || sModel.Page > sModel.TotalPage)
+
+                if (sModel.SResult != null || sModel.Page + 1 > sModel.TotalPage)
                 {
                     return Result<SearchModel>.OK("搜索完成", sModel);
                 }
 
-
+                sModel.Page++;
                 return await seachKeyWordAsinRankAsync(client, sModel);
 
             }
@@ -353,13 +357,68 @@ namespace AmazonRank.UI
         /// </summary>
         private async Task<HtmlDocument> CheckIsAntiReptilePageAsync(string html)
         {
-            HtmlDocument document = new HtmlDocument();
-            await Task.Run(() => document.LoadHtml(html));
+
+            var document = await Task.Run(() =>
+            {
+                HtmlDocument document1 = new HtmlDocument();
+                document1.LoadHtml(html);
+                return document1;
+            });
             var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
-            if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords")) {
+            if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
+            {
                 throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
             }
             return document;
         }
+
+        /// <summary>
+        /// 更新关键词搜索进度
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="total"></param>
+        private void updateKwProcessLabelText(int current, int total)
+        {
+            this.Label_KwProcess.Content = $"{current}/{total}";
+        }
+
+        /// <summary>
+        /// 更新页面搜索进度
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="total"></param>
+        private void updatePageProcessLabelText(int current, int total)
+        {
+            this.Label_PageProcess.Content = $"{current}/{total}";
+        }
+
     }
+
+    //public class ProcessLabel
+    //{
+    //    public ProcessLabel(Label label, int total) : this(label, 1, total)
+    //    {
+    //    }
+
+    //    public ProcessLabel(Label label, int current, int total)
+    //    {
+    //        this.label = label;
+    //        this.current = current;
+    //        this.total = total;
+    //    }
+
+    //    private Label label;
+
+    //    private int current;
+
+    //    private int total;
+
+    //    /// <summary>
+    //    /// 进行中
+    //    /// </summary>
+    //    public void UpdateProcessText()
+    //    {
+    //        label.Content = $"{this.current++}/{this.total}";
+    //    }
+    //}
 }
