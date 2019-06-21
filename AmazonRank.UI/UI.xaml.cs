@@ -139,7 +139,8 @@ namespace AmazonRank.UI
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
 
-                OuputLine($"初始化加载器...");
+                OuputLine($"初始化加载器...", true);
+                updateKwProcess(0, linesCount);
                 Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
                 if (!initResult.Success)
                 {
@@ -152,17 +153,23 @@ namespace AmazonRank.UI
                 //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
                 List<SearchModel> queryResultList = new List<SearchModel>();
                 int current = 1;
+                List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
                 foreach (var kewWords in lines)
                 {
-                    updateKwProcessLabelText(current++, linesCount);
+                    
                     OuputLine($"开始搜索关键字：【{kewWords}】");
-                    var searchResult = await seachKeyWordAsinRankAsync(client, new SearchModel
+                    listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
                     {
                         Asin = asin,
                         KeyWord = kewWords,
                         Link = Link
-                    });
+                    }));
+                }
 
+                foreach (var task in listTaskResult)
+                {
+                    var searchResult = await task;
+                    updateKwProcess(current++, linesCount);
                     if (!searchResult.Success)
                     {
                         OuputLine(searchResult.Msg);
@@ -173,11 +180,11 @@ namespace AmazonRank.UI
                         var sModel = searchResult.Data;
                         if (sModel.SResult == null)
                         {
-                            outputMsg = $"当前搜索完成，没有找到 关键字：【{kewWords}】 对应的 Asin：【{asin}】";
+                            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
                         }
                         else
                         {
-                            outputMsg = $"搜索完成，关键字：【{kewWords}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
                             queryResultList.Add(sModel);
                         }
 
@@ -217,23 +224,25 @@ namespace AmazonRank.UI
         /// 文本输出
         /// </summary>
         /// <param name="msg"></param>
-        private void Ouput(string msg)
+        private void Ouput(string msg, bool isClear)
         {
-            if (this.TBox_Output.LineCount > 200)
+            if (isClear || this.TBox_Output.LineCount > 200)
             {
                 this.TBox_Output.Clear();
-                this.TBox_Output.AppendText("清空缓存...\r\n");
+                //this.TBox_Output.AppendText("清空缓存...\r\n");
             }
             this.TBox_Output.AppendText(msg);
+            //自动滚动到底部
+            this.TBox_Output.ScrollToEnd();
         }
 
         /// <summary>
         /// 文本输出
         /// </summary>
         /// <param name="msg"></param>
-        private void OuputLine(string msg)
+        private void OuputLine(string msg, bool isClear = false)
         {
-            Ouput(msg + "\r\n");
+            Ouput($"{DateTime.Now.ToString("MMdd-HH:mm:ss")}：{msg}\r\n", isClear);
         }
 
 
@@ -299,7 +308,14 @@ namespace AmazonRank.UI
         {
             try
             {
-                updatePageProcessLabelText(sModel.Page, sModel.TotalPage);
+                if (sModel.Page == 1)
+                {
+                    OuputLine($"关键词：【{sModel.KeyWord}】开始加载并检索第一页。");
+                }
+                else {
+                    OuputLine($"关键词：【{sModel.KeyWord}】当前搜索页面：【{sModel.Page}/{sModel.TotalPage}】");
+                }
+
                 string requestURL = $"{sModel.Link}/s?k={sModel.KeyWord}";
                 if (sModel.Page > 1)
                 {
@@ -429,20 +445,13 @@ namespace AmazonRank.UI
         /// </summary>
         /// <param name="current"></param>
         /// <param name="total"></param>
-        private void updateKwProcessLabelText(int current, int total)
+        private void updateKwProcess(int current, int total)
         {
             this.Label_KwProcess.Content = $"{current}/{total}";
+            this.ProgressBar_KwProcess.Maximum = total;
+            this.ProgressBar_KwProcess.Value = current;
         }
 
-        /// <summary>
-        /// 更新页面搜索进度
-        /// </summary>
-        /// <param name="current"></param>
-        /// <param name="total"></param>
-        private void updatePageProcessLabelText(int current, int total)
-        {
-            this.Label_PageProcess.Content = $"{current}/{total}";
-        }
 
         /// <summary>
         /// 获取配置值

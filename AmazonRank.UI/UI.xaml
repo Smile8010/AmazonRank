@@ -34,7 +34,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <Label Grid.Column="1" Grid.Row="0" Content="ASIN:" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
-            <TextBox Name="TBox_Asin" Grid.Column="2" Grid.Row="0" Margin="0,11,0,10" VerticalContentAlignment="Center"  />
+            <TextBox Name="TBox_Asin" Grid.Column="2" Grid.Row="0" Margin="0,11,0,10" VerticalContentAlignment="Center" />
             <Button Name="Btn_Query" Grid.Column="3" Grid.Row="0" Content="查询" Margin="21,11,312,10" Click="Btn_Query_Click" />
             <Grid Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="4">
                 <Grid.ColumnDefinitions>
@@ -49,14 +49,15 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="20*"/>
+                <!--<ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="3*"/>-->
+                <ColumnDefinition Width="26*"/>
             </Grid.ColumnDefinitions>
             <Label Grid.Column="0" Content="关键词：" />
             <Label Grid.Column="1" Content="0/0" Name="Label_KwProcess" />
-            <Label Grid.Column="2" Content="搜索页面：" />
-            <Label Grid.Column="3" Content="0/0" Name="Label_PageProcess" />
+            <ProgressBar Grid.Column="2" x:Name="ProgressBar_KwProcess" />
+            <!--<Label Grid.Column="2" Content="搜索页面：" />
+            <Label Grid.Column="3" Content="0/0" Name="Label_PageProcess" />-->
         </Grid>
     </Grid>
 </Window>
