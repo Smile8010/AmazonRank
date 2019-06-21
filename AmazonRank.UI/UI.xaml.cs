@@ -151,12 +151,12 @@ namespace AmazonRank.UI
                 string Link = selectValue.Value.Link;
 
                 //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
-                List<SearchModel> queryResultList = new List<SearchModel>();
-                int current = 1;
+                //List<SearchModel> queryResultList = new List<SearchModel>();
+                //int current = 1;
                 List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
                 foreach (var kewWords in lines)
                 {
-                    
+
                     OuputLine($"开始搜索关键字：【{kewWords}】");
                     listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
                     {
@@ -166,31 +166,63 @@ namespace AmazonRank.UI
                     }));
                 }
 
-                foreach (var task in listTaskResult)
-                {
-                    var searchResult = await task;
-                    updateKwProcess(current++, linesCount);
-                    if (!searchResult.Success)
-                    {
-                        OuputLine(searchResult.Msg);
-                    }
-                    else
-                    {
-                        string outputMsg = string.Empty;
-                        var sModel = searchResult.Data;
-                        if (sModel.SResult == null)
-                        {
-                            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
-                        }
-                        else
-                        {
-                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
-                            queryResultList.Add(sModel);
-                        }
+                var queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
 
-                        OuputLine(outputMsg);
-                    }
-                }
+                //while (listTaskResult.Count > 0)
+                //{
+                //    foreach (var task in listTaskResult.Where(o => o.IsCompleted))
+                //    {
+                //        var searchResult = await task;
+                //        updateKwProcess(current++, linesCount);
+                //        if (!searchResult.Success)
+                //        {
+                //            OuputLine(searchResult.Msg);
+                //        }
+                //        else
+                //        {
+                //            string outputMsg = string.Empty;
+                //            var sModel = searchResult.Data;
+                //            if (sModel.SResult == null)
+                //            {
+                //                outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
+                //            }
+                //            else
+                //            {
+                //                outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                //                queryResultList.Add(sModel);
+                //            }
+
+                //            OuputLine(outputMsg);
+                //        }
+                //        listTaskResult.Remove(task);
+                //    }
+                //}
+
+                //foreach (var task in listTaskResult)
+                //{
+                //    var searchResult = await task;
+                //    updateKwProcess(current++, linesCount);
+                //    if (!searchResult.Success)
+                //    {
+                //        OuputLine(searchResult.Msg);
+                //    }
+                //    else
+                //    {
+                //        string outputMsg = string.Empty;
+                //        var sModel = searchResult.Data;
+                //        if (sModel.SResult == null)
+                //        {
+                //            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
+                //        }
+                //        else
+                //        {
+                //            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                //            queryResultList.Add(sModel);
+                //        }
+
+                //        OuputLine(outputMsg);
+                //    }
+                //}
 
                 setSearchStatus(true);
 
@@ -206,6 +238,75 @@ namespace AmazonRank.UI
                     dialogWin.Show();
                 }
             }
+        }
+
+
+
+        /// <summary>
+        /// 获取搜索成功列表
+        /// </summary>
+        /// <param name="listTaskResult"></param>
+        /// <param name="linesCount"></param>
+        /// <returns></returns>
+        private async Task<List<SearchModel>> getSearchModelListAsync(List<Task<Result<SearchModel>>> listTaskResult, int linesCount)
+        {
+            List<SearchModel> queryResultList = new List<SearchModel>();
+            int current = 1;
+            while (listTaskResult.Count > 0)
+            {
+
+                var searchResultList = await getResultSearchModelListAsync(listTaskResult);
+
+                foreach (var searchResult in searchResultList)
+                {
+                    updateKwProcess(current++, linesCount);
+                    if (!searchResult.Success)
+                    {
+                        OuputLine(searchResult.Msg);
+                    }
+                    else
+                    {
+                        string outputMsg = string.Empty;
+                        var sModel = searchResult.Data;
+                        if (sModel.SResult == null)
+                        {
+                            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{sModel.Asin}】";
+                        }
+                        else
+                        {
+                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                            queryResultList.Add(sModel);
+                        }
+
+                        OuputLine(outputMsg);
+                    }
+                }
+            }
+            return queryResultList;
+        }
+
+        /// <summary>
+        /// 获取搜索结果列表
+        /// </summary>
+        /// <param name="listTaskResult"></param>
+        /// <returns></returns>
+        private Task<List<Result<SearchModel>>> getResultSearchModelListAsync(List<Task<Result<SearchModel>>> listTaskResult)
+        {
+            return Task.Run(() =>
+            {
+                List<Result<SearchModel>> result = new List<Result<SearchModel>>();
+                while (result.Count <= 0)
+                {
+                    var completedTaskList = listTaskResult.Where(o => o.IsCompleted).ToList();
+                    foreach (var task in completedTaskList)
+                    {
+                        result.Add(task.Result);
+                        listTaskResult.Remove(task);
+                    }
+                    System.Threading.Thread.Sleep(500);
+                }
+                return result;
+            });
         }
 
         /// <summary>
@@ -312,7 +413,8 @@ namespace AmazonRank.UI
                 {
                     OuputLine($"关键词：【{sModel.KeyWord}】开始加载并检索第一页。");
                 }
-                else {
+                else
+                {
                     OuputLine($"关键词：【{sModel.KeyWord}】当前搜索页面：【{sModel.Page}/{sModel.TotalPage}】");
                 }
 
