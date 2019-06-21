@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -268,13 +269,13 @@ namespace AmazonRank.UI
                     {
                         string outputMsg = string.Empty;
                         var sModel = searchResult.Data;
-                        if (sModel.SResult == null)
+                        if (!sModel.isFindedAsin)
                         {
                             outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{sModel.Asin}】";
                         }
                         else
                         {
-                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
+                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.Position}】，广告：【{(sModel.IsSponsored ? "是" : "否")}】,详情：【{sModel.DetailLink}】";
                             queryResultList.Add(sModel);
                         }
 
@@ -362,7 +363,14 @@ namespace AmazonRank.UI
 
                 string indexHtml = await indexHtmlResponse.Content.ReadAsStringAsync();
 
-                HtmlDocument document = await CheckIsAntiReptilePageAsync(indexHtml);
+                Result<HtmlDocument> documentResult = await CheckIsAntiReptilePageAsync(indexHtml);
+
+                if (!documentResult.Success)
+                {
+                    return Result<object>.Error("初始化失败：" + documentResult.Msg);
+                }
+
+                //HtmlDocument document = documentResult.Data;
 
                 //HtmlDocument document = new HtmlDocument();
 
@@ -429,20 +437,60 @@ namespace AmazonRank.UI
 
                 string searchHtml = await searchResponse.Content.ReadAsStringAsync();
 
-                HtmlDocument document = await CheckIsAntiReptilePageAsync(searchHtml);
+                Result<HtmlDocument> documentResult = await CheckIsAntiReptilePageAsync(searchHtml);
 
+                if (!documentResult.Success)
+                {
+
+                    return Result<SearchModel>.Error("搜索失败：" + documentResult.Msg);
+                }
+
+                HtmlDocument document = documentResult.Data;
+
+                string errorMsg = await getSearchFromDocumentAsync(document, sModel);
+
+                if (!IsNullOrEmpty(errorMsg))
+                {
+                    return Result<SearchModel>.Error(errorMsg);
+                }
+
+                if (sModel.isFindedAsin || sModel.Page + 1 > sModel.TotalPage)
+                {
+                    return Result<SearchModel>.OK("搜索完成", sModel);
+                }
+
+                sModel.Page++;
+                return await seachKeyWordAsinRankAsync(client, sModel);
+
+            }
+            catch (Exception ex)
+            {
+                return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从 document 中搜索数据
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sModel"></param>
+        /// <returns></returns>
+        private Task<string> getSearchFromDocumentAsync(HtmlDocument document, SearchModel sModel)
+        {
+            return Task.Run(() =>
+            {
 
                 HtmlNode containNode = document.DocumentNode.SelectSingleNode("//*[@id='search']");
 
                 if (containNode == null)
                 {
-                    return Result<SearchModel>.Error("找不到 id = search 的元素！");
+                    return "找不到 id = search 的元素！";
                 }
 
                 if (sModel.Page == 1)
                 {
                     // 赋值总页数
-                    var pageLi = containNode.SelectNodes("//div[1]/div[2]/div/span[7]/div/div/div/ul/li");
+                    var pageLi = containNode.SelectNodes("./div[1]/div[2]/div/span[7]/div/div/div/ul/li");
                     if (pageLi != null)
                     {
                         if (pageLi.Count > 2)
@@ -455,6 +503,21 @@ namespace AmazonRank.UI
                             }
                         }
 
+                    }
+
+                    // 获取搜索结果数
+                    var resultNumNode = containNode.SelectSingleNode("./span/h1/div/div[1]/div/div/span[1]");
+                    //1-48 of 588 results for
+                    if (resultNumNode != null)
+                    {
+                        string pattern = @"of\s(?<num>[\w\W]+)\sresults";
+                        var m = Regex.Match(resultNumNode.InnerText, pattern);
+
+                        string numStr = m.Groups["num"].Value;
+                        if (!IsNullOrEmpty(numStr))
+                        {
+                            sModel.ResultNumString = numStr;
+                        }
                     }
                 }
 
@@ -476,31 +539,27 @@ namespace AmazonRank.UI
                         // 查询详情地址
                         var aNode = node.SelectSingleNode(".//a[@href]");
 
-                        sModel.SResult = new SearchResult
-                        {
-                            PosIndex = pos,
-                            Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】",
-                            IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
-                            DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
-                        };
+                        sModel.PosIndex = pos;
+                        sModel.Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】";
+                        sModel.IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false;
+                        sModel.DetailLink = aNode?.Attributes["href"].Value ?? string.Empty;
+
+                        sModel.isFindedAsin = true;
+
+                        //sModel.SResult = new SearchResult
+                        //{
+                        //    PosIndex = pos,
+                        //    Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】",
+                        //    IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
+                        //    DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
+                        //};
                         break;
                     }
                 }
 
+                return string.Empty;
+            });
 
-                if (sModel.SResult != null || sModel.Page + 1 > sModel.TotalPage)
-                {
-                    return Result<SearchModel>.OK("搜索完成", sModel);
-                }
-
-                sModel.Page++;
-                return await seachKeyWordAsinRankAsync(client, sModel);
-
-            }
-            catch (Exception ex)
-            {
-                return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
-            }
         }
 
         /// <summary>
@@ -529,21 +588,39 @@ namespace AmazonRank.UI
         /// <summary>
         /// 检查是否反爬虫界面
         /// </summary>
-        private async Task<HtmlDocument> CheckIsAntiReptilePageAsync(string html)
+        private Task<Result<HtmlDocument>> CheckIsAntiReptilePageAsync(string html)
         {
-
-            var document = await Task.Run(() =>
+            return Task.Run(() =>
             {
-                HtmlDocument document1 = new HtmlDocument();
-                document1.LoadHtml(html);
-                return document1;
+                try
+                {
+                    HtmlDocument document = new HtmlDocument();
+                    document.LoadHtml(html);
+                    var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
+                    if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
+                    {
+                        return Result<HtmlDocument>.Error("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
+                        //throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
+                    }
+                    return Result<HtmlDocument>.OK(document);
+                }
+                catch (Exception ex)
+                {
+                    return Result<HtmlDocument>.Error(ex.Message);
+                }
             });
-            var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
-            if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
-            {
-                throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
-            }
-            return document;
+            //var document = await Task.Run(() =>
+            //{
+            //    HtmlDocument document1 = new HtmlDocument();
+            //    document1.LoadHtml(html);
+            //    return document1;
+            //});
+            //var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
+            //if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
+            //{
+            //    throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
+            //}
+            //return document;
         }
 
         /// <summary>

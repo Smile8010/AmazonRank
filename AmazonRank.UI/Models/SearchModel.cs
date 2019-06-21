@@ -20,11 +20,11 @@ namespace AmazonRank.UI
 
         public int Rank { get; set; } = 0;
 
-        public SearchResult SResult { get; set; } = null;
-    }
+        public bool isFindedAsin { get; set; } = false;
 
-    public class SearchResult
-    {
+        public string ResultNumString { get; set; } = string.Empty;
+
+
         public string Position { get; set; } = string.Empty;
 
         public bool IsSponsored { get; set; } = false;
@@ -32,5 +32,21 @@ namespace AmazonRank.UI
         public string DetailLink { get; set; } = string.Empty;
 
         public int PosIndex { get; set; } = 0;
+
+
+        //public SearchResult SResult { get; set; } = null;
     }
+
+    //public class SearchResult
+    //{
+    //    public string Position { get; set; } = string.Empty;
+
+    //    public bool IsSponsored { get; set; } = false;
+
+    //    public string DetailLink { get; set; } = string.Empty;
+
+    //    public int PosIndex { get; set; } = 0;
+
+
+    //}
 }

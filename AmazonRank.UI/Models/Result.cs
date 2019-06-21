@@ -44,6 +44,16 @@ namespace AmazonRank.UI
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
+        public static Result<T> OK(T data)
+        {
+            return new Result<T>(true, "", data);
+        }
+
+        /// <summary>
+        /// 成功构造函数
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
         public static Result<T> OK(string msg = "")
         {
             return OK(msg, default(T));

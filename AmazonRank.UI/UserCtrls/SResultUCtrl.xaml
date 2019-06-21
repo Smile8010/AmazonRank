@@ -11,10 +11,21 @@
             <RowDefinition Height="2*" />
             <RowDefinition Height="11*"/>
         </Grid.RowDefinitions>
-        <Label Name="Lb_Title" Background="#fff" Content="Asin：" VerticalContentAlignment="Center" />
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="5*"/>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <Label Name="Lb_Title" Background="#fff" Content="Asin：" Grid.Column="0"  VerticalContentAlignment="Center" />
+            <TextBox Grid.Column="1" IsReadOnly="True" Name="TBox_Asin" VerticalContentAlignment="Center" BorderBrush="White" />
+            <Button Grid.Column="3" Content="导出" Name="Btn_Export" Click="Btn_Export_Click" />
+        </Grid>
         <DataGrid Grid.Row="1" AutoGenerateColumns="False" Name="DGrid_SResult" ItemsSource="{Binding}" >
             <DataGrid.Columns>
                 <DataGridTextColumn Header="关键字" Binding="{Binding KeyWord}" IsReadOnly="True" Width="3*" />
+                <DataGridTextColumn Header="搜索结果数" Binding="{Binding ResultNumString}" IsReadOnly="True" Width="3*" />
                 <DataGridTextColumn Header="页码" Binding="{Binding Page}" IsReadOnly="True" Width="2*" />
                 <DataGridTextColumn  Header="排名" Binding="{Binding Rank}" IsReadOnly="True" Width="2*"/>
                 <DataGridTextColumn  Header="页面位置" Binding="{Binding Pos}" IsReadOnly="True" Width="2*"/>
