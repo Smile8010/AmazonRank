@@ -467,11 +467,14 @@ namespace AmazonRank.UI
                     string asin = node.Attributes["data-asin"].Value;
                     if (asin.Equals(sModel.Asin))
                     {
+                        // a-row a-spacing-micro
                         // 查询是否广告
-                        var sponsoredNode = node.SelectSingleNode("//div/div/div/div/div/div[2]/div[2]/div/div[1]/div/span[1]");
+                        //var sponsoredNode = node.SelectSingleNode("./div/div/div/div/div/div[2]/div[2]/div/div[1]/div/span[1]");
+
+                        var sponsoredNode = node.SelectSingleNode(".//div[@class='a-row a-spacing-micro']/span[1]");
 
                         // 查询详情地址
-                        var aNode = node.SelectSingleNode("//div/div/div/div/div/div[2]/div[1]/div/div/span/a");
+                        var aNode = node.SelectSingleNode(".//a[@href]");
 
                         sModel.SResult = new SearchResult
                         {
@@ -480,6 +483,7 @@ namespace AmazonRank.UI
                             IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
                             DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
                         };
+                        break;
                     }
                 }
 
