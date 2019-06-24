@@ -3,12 +3,37 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:AmazonRank.UI.UserWins"
+        xmlns:local="clr-namespace:AmazonRank.UI.UserWins" 
+        xmlns:localName="clr-namespace:AmazonRank.UI"
+        xmlns:userctrls="clr-namespace:AmazonRank.UI.UserCtrls"
         mc:Ignorable="d"
-        Title="Asin类别排名" Height="450" Width="800">
+        Title="Asin类别排名" Height="352" Width="284">
     <Grid>
-        <TreeView>
-            
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="6*"/>
+            <RowDefinition Height="15*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="5*"/>
+        </Grid.ColumnDefinitions>
+        <userctrls:CBoxCountryCtrl Grid.Column="0" Grid.ColumnSpan="2" Margin="5" />
+        <Button Name="Btn_Query" Content="查询" Grid.Row="0" Grid.Column="2" Margin="5"/>
+        <Label Content="Asin：" VerticalContentAlignment="Center" Grid.Row="1" Grid.Column="0" />
+        <TextBox Name="TBox_Asin" TextWrapping="Wrap" AcceptsReturn="True" MaxLines="10" Grid.Column="1" Grid.Row="1" Margin="0,0,5,0" Grid.ColumnSpan="2" />
+        <TreeView Name="TView_Result" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" >
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate  DataType="{x:Type localName:AsinCategoryTreeModel}" ItemsSource="{Binding Path=Children}" >
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}"></TextBlock>
+                        <StackPanel.ToolTip>
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Desc}" TextWrapping="Wrap" MaxWidth="200" ></TextBlock>
+                        </StackPanel.ToolTip>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
         </TreeView>
     </Grid>
 </Window>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AmazonRank.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,9 +20,12 @@ namespace AmazonRank.UI.UserWins
     /// </summary>
     public partial class AsinCategory : Window
     {
+        string proxyIpAddress = string.Empty;
+
         public AsinCategory()
         {
             InitializeComponent();
+
         }
     }
 }
