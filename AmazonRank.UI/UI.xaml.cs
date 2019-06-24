@@ -138,7 +138,7 @@ namespace AmazonRank.UI
                 client.Timeout = new TimeSpan(0, 0, 1, 0);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-                client.DefaultRequestHeaders.Add("User-Agent",getConfigValue("Request.UserAgent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"));
+                client.DefaultRequestHeaders.Add("User-Agent", getConfigValue("Request.UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"));
 
                 OuputLine($"初始化加载器...", true);
                 updateKwProcess(0, linesCount);
@@ -171,18 +171,19 @@ namespace AmazonRank.UI
 
                     queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
 
-                setSearchStatus(true);
+                    setSearchStatus(true);
 
-                if (queryResultList.Count > 0)
-                {
-                    var dialogWin = new DialogWin();
-                    dialogWin.Title = "搜索结果";
-                    dialogWin.Width = 450;
-                    dialogWin.Height = 200;
-                    SResultUCtrl srUCtrl = new SResultUCtrl();
-                    srUCtrl.UpdateDataSource(queryResultList);
-                    dialogWin.Container.Children.Add(srUCtrl);
-                    dialogWin.Show();
+                    if (queryResultList.Count > 0)
+                    {
+                        var dialogWin = new DialogWin();
+                        dialogWin.Title = "搜索结果";
+                        dialogWin.Width = 450;
+                        dialogWin.Height = 200;
+                        SResultUCtrl srUCtrl = new SResultUCtrl();
+                        srUCtrl.UpdateDataSource(queryResultList);
+                        dialogWin.Container.Children.Add(srUCtrl);
+                        dialogWin.Show();
+                    }
                 }
             }
         }
