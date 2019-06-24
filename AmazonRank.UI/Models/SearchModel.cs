@@ -20,7 +20,13 @@ namespace AmazonRank.UI
 
         public int Rank { get; set; } = 0;
 
-        public bool isFindedAsin { get; set; } = false;
+        public bool isFindedAsin
+        {
+            get
+            {
+                return FindModels.Count >= 2;
+            }
+        }
 
         public string ResultNumString { get; set; } = string.Empty;
 
@@ -34,7 +40,34 @@ namespace AmazonRank.UI
         public int PosIndex { get; set; } = 0;
 
 
+        public List<FindModel> FindModels { get; set; } = new List<FindModel>();
+
         //public SearchResult SResult { get; set; } = null;
+    }
+
+    public class FindModel
+    {
+        public string KeyWord { get; set; } = string.Empty;
+
+        public int Page { get; set; } = 1;
+
+        public int Rank { get; set; } = 0;
+
+        public bool IsSponsored { get; set; } = false;
+
+        public int Pos { get; set; } = 0;
+
+        public string ResultNumString { get; set; } = string.Empty;
+
+        public string Position { get; set; }
+
+        public string IsSponsoredText
+        {
+            get
+            {
+                return IsSponsored ? "是" : "否";
+            }
+        }
     }
 
     //public class SearchResult

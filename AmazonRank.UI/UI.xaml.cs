@@ -70,7 +70,7 @@ namespace AmazonRank.UI
                 MessageBox.Show("输入ASIN!");
                 return;
             }
-            List<string> lines = Utils.GetLines(this.TBox_KeyWords.LineCount,i=>this.TBox_KeyWords.GetLineText(i));
+            List<string> lines = Utils.GetLines(this.TBox_KeyWords.LineCount, i => this.TBox_KeyWords.GetLineText(i));
             int linesCount = lines.Count;
             if (linesCount <= 0)
             {
@@ -181,13 +181,14 @@ namespace AmazonRank.UI
                     {
                         string outputMsg = string.Empty;
                         var sModel = searchResult.Data;
-                        if (!sModel.isFindedAsin)
+                        if (sModel.FindModels.Count <= 0)
                         {
                             outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{sModel.Asin}】";
                         }
                         else
                         {
-                            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.Position}】，广告：【{(sModel.IsSponsored ? "是" : "否")}】,详情：【{sModel.DetailLink}】";
+                            sModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键字：【{l.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
+                            //outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.Position}】，广告：【{(sModel.IsSponsored ? "是" : "否")}】,详情：【{sModel.DetailLink}】";
                             queryResultList.Add(sModel);
                         }
 
@@ -256,7 +257,7 @@ namespace AmazonRank.UI
         /// <param name="msg"></param>
         private void OuputLine(string msg, bool isClear = false)
         {
-            this.TBoxOutput.OuputLine(msg,isClear);
+            this.TBoxOutput.OuputLine(msg, isClear);
         }
 
         /// <summary>
@@ -389,15 +390,31 @@ namespace AmazonRank.UI
                         var sponsoredNode = node.SelectSingleNode(".//div[@class='a-row a-spacing-micro']/span[1]");
 
                         // 查询详情地址
-                        var aNode = node.SelectSingleNode(".//a[@href]");
+                        //var aNode = node.SelectSingleNode(".//a[@href]");
 
-                        sModel.PosIndex = pos;
-                        sModel.Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】";
-                        sModel.IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false;
-                        sModel.DetailLink = aNode?.Attributes["href"].Value ?? string.Empty;
+                        //sModel.PosIndex = pos;
+                        //sModel.Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】";
+                        //sModel.IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false;
+                        //sModel.DetailLink = aNode?.Attributes["href"].Value ?? string.Empty;
 
-                        sModel.isFindedAsin = true;
-                        break;
+                        //sModel.isFindedAsin = true;
+
+                        sModel.FindModels.Add(new FindModel
+                        {
+                            IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
+                            KeyWord = sModel.KeyWord,
+                            Page = sModel.Page,
+                            Pos = pos,
+                            Rank = sModel.Rank,
+                            ResultNumString = sModel.ResultNumString,
+                            Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】"
+                        });
+
+                        if (sModel.isFindedAsin)
+                        {
+                            break;
+                        }
+                        //break;
                     }
                 }
 
@@ -421,7 +438,7 @@ namespace AmazonRank.UI
 
 
 
-       
+
     }
 
 }
