@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AmazonRank.UI
+namespace AmazonRank.Core
 {
     public class CountryModel
     {
