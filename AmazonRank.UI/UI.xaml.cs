@@ -1,4 +1,5 @@
-﻿using AmazonRank.UI.UserCtrls;
+﻿using AmazonRank.Core;
+using AmazonRank.UI.UserCtrls;
 using AmazonRank.UI.UserWins;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
@@ -142,7 +143,7 @@ namespace AmazonRank.UI
 
                 OuputLine($"初始化加载器...", true);
                 updateKwProcess(0, linesCount);
-                Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
+                Result<object> initResult = await Utils.InitQueryAsync(client, selectValue.Value.Link, selectValue.Value.ZipCode);
                 List<SearchModel> queryResultList = new List<SearchModel>();
                 if (!initResult.Success)
                 {
@@ -294,66 +295,6 @@ namespace AmazonRank.UI
             Ouput($"{DateTime.Now.ToString("MMdd-HH:mm:ss")}：{msg}\r\n", isClear);
         }
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="link"></param>
-        /// <param name="zipCode"></param>
-        private async Task<Result<object>> initQueryAsyn(HttpClient client, string link, string zipCode)
-        {
-            try
-            {
-                var indexHtmlResponse = await client.GetAsync(link);
-                indexHtmlResponse.EnsureSuccessStatusCode();
-
-                string indexHtml = await indexHtmlResponse.Content.ReadAsStringAsync();
-
-                Result<HtmlDocument> documentResult = await CheckIsAntiReptilePageAsync(indexHtml);
-
-                if (!documentResult.Success)
-                {
-                    return Result<object>.Error("初始化失败：" + documentResult.Msg);
-                }
-
-                //HtmlDocument document = documentResult.Data;
-
-                //HtmlDocument document = new HtmlDocument();
-
-                //await Task.Run(() => document.LoadHtml(indexHtml));
-
-                //设置地区
-                List<KeyValuePair<string, string>> paramsList = new List<KeyValuePair<string, string>>() {
-                    new KeyValuePair<string, string>("locationType","LOCATION_INPUT"),
-                    new KeyValuePair<string, string>("zipCode",zipCode),
-                    new KeyValuePair<string, string>("storeContext","generic"),
-                    new KeyValuePair<string, string>("deviceType","web"),
-                    new KeyValuePair<string, string>("pageType","Gateway"),
-                    new KeyValuePair<string, string>("actionSource","glow")
-                };
-
-                var setResponse = await client.PostAsync($"{link}/gp/delivery/ajax/address-change.html", new FormUrlEncodedContent(paramsList));
-                setResponse.EnsureSuccessStatusCode();
-
-                var responseText = await setResponse.Content.ReadAsStringAsync();
-
-                var data = new { isValidAddress = 0 };
-
-                data = JsonConvert.DeserializeAnonymousType(responseText, data);
-                if (data == null || data.isValidAddress != 1)
-                {
-                    return Result<object>.Error("无法设置收货目的地！");
-                }
-
-                return Result<object>.OK();
-            }
-            catch (Exception ex)
-            {
-                return Result<object>.Error($"初始化查询异常：{ex.Message}");
-            }
-        }
-
         /// <summary>
         /// 查询Asin关键字排名
         /// </summary>
@@ -384,7 +325,7 @@ namespace AmazonRank.UI
 
                 string searchHtml = await searchResponse.Content.ReadAsStringAsync();
 
-                Result<HtmlDocument> documentResult = await CheckIsAntiReptilePageAsync(searchHtml);
+                Result<HtmlDocument> documentResult = await Utils.CheckIsAntiReptilePageAsync(searchHtml);
 
                 if (!documentResult.Success)
                 {
@@ -524,42 +465,6 @@ namespace AmazonRank.UI
             return lines;
         }
 
-        /// <summary>
-        /// 检查是否反爬虫界面
-        /// </summary>
-        private Task<Result<HtmlDocument>> CheckIsAntiReptilePageAsync(string html)
-        {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    HtmlDocument document = new HtmlDocument();
-                    document.LoadHtml(html);
-                    var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
-                    if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
-                    {
-                        return Result<HtmlDocument>.Error("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
-                    }
-                    return Result<HtmlDocument>.OK(document);
-                }
-                catch (Exception ex)
-                {
-                    return Result<HtmlDocument>.Error(ex.Message);
-                }
-            });
-            //var document = await Task.Run(() =>
-            //{
-            //    HtmlDocument document1 = new HtmlDocument();
-            //    document1.LoadHtml(html);
-            //    return document1;
-            //});
-            //var inputNodes = document.DocumentNode.SelectSingleNode("//input[@id='captchacharacters']");
-            //if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
-            //{
-            //    throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
-            //}
-            //return document;
-        }
 
         /// <summary>
         /// 更新关键词搜索进度

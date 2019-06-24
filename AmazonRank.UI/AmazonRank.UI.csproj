@@ -70,7 +70,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Models\CountryModel.cs" />
-    <Compile Include="Models\Result.cs" />
     <Compile Include="Models\SearchModel.cs" />
     <Compile Include="UI.xaml.cs">
       <DependentUpon>UI.xaml</DependentUpon>
@@ -137,6 +136,12 @@
     <Resource Include="Content\t.txt" />
     <Resource Include="Content\t1.txt" />
     <Resource Include="Content\t2.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AmazonRank.Core\AmazonRank.Core.csproj">
+      <Project>{16725B5F-0225-4C59-93E0-5CB91A2F8448}</Project>
+      <Name>AmazonRank.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.0.0\build\Fody.targets" Condition="Exists('..\packages\Fody.5.0.0\build\Fody.targets')" />
