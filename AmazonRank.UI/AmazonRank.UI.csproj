@@ -76,6 +76,9 @@
     <Compile Include="UserCtrls\SResultUCtrl.xaml.cs">
       <DependentUpon>SResultUCtrl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UserWins\AsinCategory.xaml.cs">
+      <DependentUpon>AsinCategory.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UserWins\DialogWin.xaml.cs">
       <DependentUpon>DialogWin.xaml</DependentUpon>
     </Compile>
@@ -96,6 +99,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UserCtrls\SResultUCtrl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserWins\AsinCategory.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
