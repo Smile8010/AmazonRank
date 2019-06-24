@@ -169,62 +169,6 @@ namespace AmazonRank.UI
 
                 var queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
 
-                //while (listTaskResult.Count > 0)
-                //{
-                //    foreach (var task in listTaskResult.Where(o => o.IsCompleted))
-                //    {
-                //        var searchResult = await task;
-                //        updateKwProcess(current++, linesCount);
-                //        if (!searchResult.Success)
-                //        {
-                //            OuputLine(searchResult.Msg);
-                //        }
-                //        else
-                //        {
-                //            string outputMsg = string.Empty;
-                //            var sModel = searchResult.Data;
-                //            if (sModel.SResult == null)
-                //            {
-                //                outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
-                //            }
-                //            else
-                //            {
-                //                outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
-                //                queryResultList.Add(sModel);
-                //            }
-
-                //            OuputLine(outputMsg);
-                //        }
-                //        listTaskResult.Remove(task);
-                //    }
-                //}
-
-                //foreach (var task in listTaskResult)
-                //{
-                //    var searchResult = await task;
-                //    updateKwProcess(current++, linesCount);
-                //    if (!searchResult.Success)
-                //    {
-                //        OuputLine(searchResult.Msg);
-                //    }
-                //    else
-                //    {
-                //        string outputMsg = string.Empty;
-                //        var sModel = searchResult.Data;
-                //        if (sModel.SResult == null)
-                //        {
-                //            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{asin}】";
-                //        }
-                //        else
-                //        {
-                //            outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{asin}】,位置：【{sModel.SResult.Position}】，广告：【{(sModel.SResult.IsSponsored ? "是" : "否")}】,详情：【{sModel.SResult.DetailLink}】";
-                //            queryResultList.Add(sModel);
-                //        }
-
-                //        OuputLine(outputMsg);
-                //    }
-                //}
-
                 setSearchStatus(true);
 
                 if (queryResultList.Count > 0)
@@ -545,14 +489,6 @@ namespace AmazonRank.UI
                         sModel.DetailLink = aNode?.Attributes["href"].Value ?? string.Empty;
 
                         sModel.isFindedAsin = true;
-
-                        //sModel.SResult = new SearchResult
-                        //{
-                        //    PosIndex = pos,
-                        //    Position = $"Page:【{sModel.Page}】,Pos:【{pos}】,Rank:【{sModel.Rank}】",
-                        //    IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
-                        //    DetailLink = aNode?.Attributes["href"].Value ?? string.Empty
-                        //};
                         break;
                     }
                 }
@@ -600,7 +536,6 @@ namespace AmazonRank.UI
                     if (inputNodes != null && (inputNodes.Attributes["name"]?.Value ?? "").Equals("field-keywords"))
                     {
                         return Result<HtmlDocument>.Error("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
-                        //throw new Exception("被Amazon反爬虫拦截了，获取失败，请等一段时间后再重试！");
                     }
                     return Result<HtmlDocument>.OK(document);
                 }
@@ -667,31 +602,4 @@ namespace AmazonRank.UI
         }
     }
 
-    //public class ProcessLabel
-    //{
-    //    public ProcessLabel(Label label, int total) : this(label, 1, total)
-    //    {
-    //    }
-
-    //    public ProcessLabel(Label label, int current, int total)
-    //    {
-    //        this.label = label;
-    //        this.current = current;
-    //        this.total = total;
-    //    }
-
-    //    private Label label;
-
-    //    private int current;
-
-    //    private int total;
-
-    //    /// <summary>
-    //    /// 进行中
-    //    /// </summary>
-    //    public void UpdateProcessText()
-    //    {
-    //        label.Content = $"{this.current++}/{this.total}";
-    //    }
-    //}
 }
