@@ -143,31 +143,33 @@ namespace AmazonRank.UI
                 OuputLine($"初始化加载器...", true);
                 updateKwProcess(0, linesCount);
                 Result<object> initResult = await initQueryAsyn(client, selectValue.Value.Link, selectValue.Value.ZipCode);
+                List<SearchModel> queryResultList = new List<SearchModel>();
                 if (!initResult.Success)
                 {
                     OuputLine(initResult.Msg);
-                    return;
                 }
-
-                string Link = selectValue.Value.Link;
-
-                //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
-                //List<SearchModel> queryResultList = new List<SearchModel>();
-                //int current = 1;
-                List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
-                foreach (var kewWords in lines)
+                else
                 {
 
-                    OuputLine($"开始搜索关键字：【{kewWords}】");
-                    listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
-                    {
-                        Asin = asin,
-                        KeyWord = kewWords,
-                        Link = Link
-                    }));
-                }
+                    string Link = selectValue.Value.Link;
 
-                var queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
+                    //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
+                    //List<SearchModel> queryResultList = new List<SearchModel>();
+                    //int current = 1;
+                    List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
+                    foreach (var kewWords in lines)
+                    {
+
+                        OuputLine($"开始搜索关键字：【{kewWords}】");
+                        listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
+                        {
+                            Asin = asin,
+                            KeyWord = kewWords,
+                            Link = Link
+                        }));
+                    }
+
+                    queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
 
                 setSearchStatus(true);
 
