@@ -19,8 +19,8 @@
             <ColumnDefinition Width="4*"/>
             <ColumnDefinition Width="5*"/>
         </Grid.ColumnDefinitions>
-        <userctrls:CBoxCountryCtrl Grid.Column="0" Grid.ColumnSpan="2" Margin="5" />
-        <Button Name="Btn_Query" Content="查询" Grid.Row="0" Grid.Column="2" Margin="5"/>
+        <userctrls:CBoxCountryCtrl Grid.Column="0" Grid.ColumnSpan="2" Margin="5" x:Name="CBoxCountry" />
+        <Button Name="Btn_Query" Content="查询" Grid.Row="0" Grid.Column="2" Margin="5" Click="Btn_Query_Click"/>
         <Label Content="Asin：" VerticalContentAlignment="Center" Grid.Row="1" Grid.Column="0" />
         <TextBox Name="TBox_Asin" TextWrapping="Wrap" AcceptsReturn="True" MaxLines="10" Grid.Column="1" Grid.Row="1" Margin="0,0,5,0" Grid.ColumnSpan="2" />
         <userctrls:TBoxOutputCtrl Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"  Margin="0,5,0,0" x:Name="TBoxOutput" />

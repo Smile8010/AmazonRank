@@ -80,7 +80,7 @@ namespace AmazonRank.UI
 
             if (this.CBoxCountry.SelectedValue == null)
             {
-                MessageBox.Show("选择国家!");
+                MessageBox.Show("选择站点!");
                 return;
             }
 
