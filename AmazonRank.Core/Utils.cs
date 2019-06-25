@@ -184,7 +184,7 @@ namespace AmazonRank.Core
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
             client.DefaultRequestHeaders.Add("User-Agent", GetConfigValue("Request.UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"));
-
+            client.DefaultRequestHeaders.Connection.Add("keep-alive");
             return client;
         }
 
@@ -209,6 +209,40 @@ namespace AmazonRank.Core
                 }
             }
             return lines;
+        }
+
+        private static Dictionary<string, HttpClient> _cacheHttpClient = new Dictionary<string, HttpClient>();
+
+        /// <summary>
+        /// 获取缓存的 HttpClient
+        /// </summary>
+        /// <param name="countryModel"></param>
+        /// <returns></returns>
+        public static HttpClient GetCacheClient(CountryModel countryModel, out bool isCreated)
+        {
+            HttpClient client;
+            string cacheKey = countryModel.Link;
+            isCreated = false;
+            if (!_cacheHttpClient.TryGetValue(cacheKey, out client))
+            {
+                client = GetDefaultHttpClient(countryModel.isProxy);
+                _cacheHttpClient.Add(cacheKey, client);
+                isCreated = true;
+            }
+            return client;
+        }
+
+        /// <summary>
+        /// 清空加载器缓存
+        /// </summary>
+        public static void ClearClientCache()
+        {
+            var cacheKeyList = _cacheHttpClient.Keys.ToList();
+            foreach (var item in cacheKeyList)
+            {
+                _cacheHttpClient[item].Dispose();
+                _cacheHttpClient.Remove(item);
+            }
         }
     }
 }

@@ -37,7 +37,14 @@ namespace AmazonRank.UI.UserCtrls
                 {
                     sModel.FindModels.ForEach(l =>
                     {
-                        source.Add(l);
+                        source.Add(new {
+                            l.KeyWord,
+                            l.Page,
+                            l.Rank,
+                            l.IsSponsoredText,
+                            l.Pos,
+                            l.ResultNumString
+                        });
                     });
                    
                 });

@@ -38,12 +38,7 @@ namespace AmazonRank.UI.UserCtrls
             {
                 Key = o.CountryName
                 ,
-                Value = new
-                {
-                    o.Link,
-                    o.ZipCode,
-                    o.isProxy
-                }
+                Value = o
             });
 
             this.CBox_Country.SelectedIndex = 0;
@@ -53,7 +48,7 @@ namespace AmazonRank.UI.UserCtrls
         /// 选中的值
         /// </summary>
         /// <returns></returns>
-        public dynamic SelectedValue
+        public CountryModel SelectedValue
         {
             get
             {
@@ -62,7 +57,9 @@ namespace AmazonRank.UI.UserCtrls
                     return null;
                 }
 
-                return this.CBox_Country.SelectedValue;
+                dynamic value = this.CBox_Country.SelectedValue;
+
+                return value.Value as CountryModel;
             }
         }
     }

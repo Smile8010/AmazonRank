@@ -31,6 +31,7 @@ namespace AmazonRank.UI
     public partial class UI : Window
     {
         //string proxyIpAddress = string.Empty;
+
         public UI()
         {
             InitializeComponent();
@@ -102,55 +103,57 @@ namespace AmazonRank.UI
 
             setSearchStatus(false);
 
-            dynamic selectValue = this.CBoxCountry.SelectedValue;
-            using (HttpClient client = Utils.GetDefaultHttpClient(selectValue.Value.isProxy))
+            var selectValue = this.CBoxCountry.SelectedValue;
+            var client = Utils.GetCacheClient(selectValue, out bool isCreated);
+            Result<object> initResult = null;
+            if (isCreated)
             {
                 OuputLine($"初始化加载器...", true);
-                updateKwProcess(0, linesCount);
-                Result<object> initResult = await Utils.InitQueryAsync(client, selectValue.Value.Link, selectValue.Value.ZipCode);
-                List<SearchModel> queryResultList = new List<SearchModel>();
-                if (!initResult.Success)
-                {
-                    OuputLine(initResult.Msg);
-                }
-                else
-                {
-
-                    string Link = selectValue.Value.Link;
-
-                    //Parallel.ForEach(lines,new ParallelOptions { MaxDegreeOfParallelism=5 },())
-                    //List<SearchModel> queryResultList = new List<SearchModel>();
-                    //int current = 1;
-                    List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
-                    foreach (var kewWords in lines)
-                    {
-
-                        OuputLine($"开始搜索关键字：【{kewWords}】");
-                        listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
-                        {
-                            Asin = asin,
-                            KeyWord = kewWords,
-                            Link = Link
-                        }));
-                    }
-
-                    queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
-
-                    setSearchStatus(true);
-
-                    if (queryResultList.Count > 0)
-                    {
-                        var dialogWin = new DialogWin();
-                        dialogWin.Title = "搜索结果";
-                        dialogWin.Width = 450;
-                        dialogWin.Height = 200;
-                        SResultUCtrl srUCtrl = new SResultUCtrl();
-                        srUCtrl.UpdateDataSource(queryResultList);
-                        dialogWin.Container.Children.Add(srUCtrl);
-                        dialogWin.Show();
-                    }
-                }
+                initResult = await Utils.InitQueryAsync(client, selectValue.Link, selectValue.ZipCode);
             }
+            List<SearchModel> queryResultList = new List<SearchModel>();
+            if (initResult != null && !initResult.Success)
+            {
+                OuputLine(initResult.Msg);
+            }
+            else
+            {
+                if (initResult == null)
+                {
+                    OuputLine($"获取缓存的加载器...", true);
+                }
+                updateKwProcess(0, linesCount);
+                string Link = selectValue.Link;
+
+                List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
+                foreach (var kewWords in lines)
+                {
+
+                    OuputLine($"开始搜索关键字：【{kewWords}】");
+                    listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
+                    {
+                        Asin = asin,
+                        KeyWord = kewWords,
+                        Link = Link
+                    }));
+                }
+
+                queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
+            }
+            if (queryResultList.Count > 0)
+            {
+                var dialogWin = new DialogWin();
+                dialogWin.Title = "搜索结果";
+                dialogWin.Width = 450;
+                dialogWin.Height = 200;
+                SResultUCtrl srUCtrl = new SResultUCtrl();
+                srUCtrl.UpdateDataSource(queryResultList);
+                dialogWin.Container.Children.Add(srUCtrl);
+                dialogWin.Show();
+            }
+
+            setSearchStatus(true);
+
         }
 
 
@@ -375,11 +378,9 @@ namespace AmazonRank.UI
                 }
 
                 var nodes = containNode.SelectNodes("//div[1]/div[2]/div/span[3]/div[1]/div");
-                int pos = 0;
                 foreach (var node in nodes)
                 {
                     sModel.Rank++;
-                    pos++;
                     string asin = node.Attributes["data-asin"].Value;
                     if (asin.Equals(sModel.Asin))
                     {
@@ -399,6 +400,8 @@ namespace AmazonRank.UI
 
                         //sModel.isFindedAsin = true;
 
+                        int pos = Convert.ToInt32(node.Attributes["data-index"].Value) + 1;
+
                         sModel.FindModels.Add(new FindModel
                         {
                             IsSponsored = sponsoredNode?.InnerText.Contains("Sponsored") ?? false,
@@ -414,7 +417,6 @@ namespace AmazonRank.UI
                         {
                             break;
                         }
-                        //break;
                     }
                 }
 
@@ -435,10 +437,11 @@ namespace AmazonRank.UI
             this.ProgressBar_KwProcess.Value = current;
         }
 
-
-
-
-
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            // 销毁 HttpClient
+            Utils.ClearClientCache();
+        }
     }
 
 }

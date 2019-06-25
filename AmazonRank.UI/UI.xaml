@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:AmazonRank.UI"
         xmlns:userctrls="clr-namespace:AmazonRank.UI.UserCtrls"
         mc:Ignorable="d"
-        Title="排名查询" Height="450" Width="800"  >
+        Title="排名查询" Height="450" Width="800" Closed="Window_Closed" >
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="20*"/>

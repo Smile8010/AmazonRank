@@ -47,10 +47,10 @@ namespace AmazonRank.UI.UserWins
                 return;
             }
 
-            using (HttpClient client = Utils.GetDefaultHttpClient(countrySelectedValue.Value.isProxy))
+            using (HttpClient client = Utils.GetDefaultHttpClient(countrySelectedValue.isProxy))
             {
                 OuputLine($"初始化加载器...", true);
-                Result<object> initResult = await Utils.InitQueryAsync(client, countrySelectedValue.Value.Link, countrySelectedValue.Value.ZipCode);
+                Result<object> initResult = await Utils.InitQueryAsync(client, countrySelectedValue.Link, countrySelectedValue.ZipCode);
                 if (!initResult.Success)
                 {
                     OuputLine(initResult.Msg);
