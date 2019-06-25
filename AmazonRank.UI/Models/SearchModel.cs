@@ -31,13 +31,13 @@ namespace AmazonRank.UI
         public string ResultNumString { get; set; } = string.Empty;
 
 
-        public string Position { get; set; } = string.Empty;
+        //public string Position { get; set; } = string.Empty;
 
-        public bool IsSponsored { get; set; } = false;
+        //public bool IsSponsored { get; set; } = false;
 
-        public string DetailLink { get; set; } = string.Empty;
+        //public string DetailLink { get; set; } = string.Empty;
 
-        public int PosIndex { get; set; } = 0;
+        //public int PosIndex { get; set; } = 0;
 
 
         public List<FindModel> FindModels { get; set; } = new List<FindModel>();
