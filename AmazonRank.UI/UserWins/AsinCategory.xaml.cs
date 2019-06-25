@@ -47,19 +47,20 @@ namespace AmazonRank.UI.UserWins
                 return;
             }
 
-            using (HttpClient client = Utils.GetDefaultHttpClient(countrySelectedValue.isProxy))
-            {
-                OuputLine($"初始化加载器...", true);
-                Result<object> initResult = await Utils.InitQueryAsync(client, countrySelectedValue.Link, countrySelectedValue.ZipCode);
-                if (!initResult.Success)
-                {
-                    OuputLine(initResult.Msg);
-                }
-                else
-                {
-                    //https://www.amazon.com/gp/product/B07KY56KJ2?psc=1
-                }
-            }
+
+            //using (HttpClient client = Utils.GetDefaultHttpClient(countrySelectedValue.isProxy))
+            //{
+            //    OuputLine($"初始化加载器...", true);
+            //    Result<object> initResult = await Utils.InitQueryAsync(client, countrySelectedValue.Link, countrySelectedValue.ZipCode);
+            //    if (!initResult.Success)
+            //    {
+            //        OuputLine(initResult.Msg);
+            //    }
+            //    else
+            //    {
+            //        //https://www.amazon.com/gp/product/B07KY56KJ2?psc=1
+            //    }
+            //}
         }
 
         /// <summary>

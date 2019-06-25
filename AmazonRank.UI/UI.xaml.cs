@@ -102,26 +102,11 @@ namespace AmazonRank.UI
             //return;
 
             setSearchStatus(false);
-
             var selectValue = this.CBoxCountry.SelectedValue;
-            var client = Utils.GetCacheClient(selectValue, out bool isCreated);
-            Result<object> initResult = null;
-            if (isCreated)
+            var clientResult = await Utils.GetInitCacheClientAsync(selectValue, OuputLine);
+            if (clientResult.Success)
             {
-                OuputLine($"初始化加载器...", true);
-                initResult = await Utils.InitQueryAsync(client, selectValue.Link, selectValue.ZipCode);
-            }
-            List<SearchModel> queryResultList = new List<SearchModel>();
-            if (initResult != null && !initResult.Success)
-            {
-                OuputLine(initResult.Msg);
-            }
-            else
-            {
-                if (initResult == null)
-                {
-                    OuputLine($"获取缓存的加载器...", true);
-                }
+                var client = clientResult.Data;
                 updateKwProcess(0, linesCount);
                 string Link = selectValue.Link;
 
@@ -138,21 +123,72 @@ namespace AmazonRank.UI
                     }));
                 }
 
-                queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
-            }
-            if (queryResultList.Count > 0)
-            {
-                var dialogWin = new DialogWin();
-                dialogWin.Title = "搜索结果";
-                dialogWin.Width = 450;
-                dialogWin.Height = 200;
-                SResultUCtrl srUCtrl = new SResultUCtrl();
-                srUCtrl.UpdateDataSource(queryResultList);
-                dialogWin.Container.Children.Add(srUCtrl);
-                dialogWin.Show();
+                List<SearchModel> queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
+                if (queryResultList.Count > 0)
+                {
+                    var dialogWin = new DialogWin();
+                    dialogWin.Title = "搜索结果";
+                    dialogWin.Width = 450;
+                    dialogWin.Height = 200;
+                    SResultUCtrl srUCtrl = new SResultUCtrl();
+                    srUCtrl.UpdateDataSource(queryResultList);
+                    dialogWin.Container.Children.Add(srUCtrl);
+                    dialogWin.Show();
+                }
             }
 
             setSearchStatus(true);
+
+            //var selectValue = this.CBoxCountry.SelectedValue;
+            //var client = Utils.GetCacheClient(selectValue, out bool isCreated);
+            //Result<object> initResult = null;
+            //if (isCreated)
+            //{
+            //    OuputLine($"初始化加载器...", true);
+            //    initResult = await Utils.InitQueryAsync(client, selectValue.Link, selectValue.ZipCode);
+            //}
+            //List<SearchModel> queryResultList = new List<SearchModel>();
+            //if (initResult != null && !initResult.Success)
+            //{
+            //    OuputLine(initResult.Msg);
+            //}
+            //else
+            //{
+            //    if (initResult == null)
+            //    {
+            //        OuputLine($"获取缓存的加载器...", true);
+            //    }
+            //    updateKwProcess(0, linesCount);
+            //    string Link = selectValue.Link;
+
+            //    List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
+            //    foreach (var kewWords in lines)
+            //    {
+
+            //        OuputLine($"开始搜索关键字：【{kewWords}】");
+            //        listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
+            //        {
+            //            Asin = asin,
+            //            KeyWord = kewWords,
+            //            Link = Link
+            //        }));
+            //    }
+
+            //    queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
+            //}
+            //if (queryResultList.Count > 0)
+            //{
+            //    var dialogWin = new DialogWin();
+            //    dialogWin.Title = "搜索结果";
+            //    dialogWin.Width = 450;
+            //    dialogWin.Height = 200;
+            //    SResultUCtrl srUCtrl = new SResultUCtrl();
+            //    srUCtrl.UpdateDataSource(queryResultList);
+            //    dialogWin.Container.Children.Add(srUCtrl);
+            //    dialogWin.Show();
+            //}
+
+            //setSearchStatus(true);
 
         }
 

@@ -244,5 +244,35 @@ namespace AmazonRank.Core
                 _cacheHttpClient.Remove(item);
             }
         }
+
+        /// <summary>
+        /// 获取已经初始化的 加载器
+        /// </summary>
+        /// <param name="countryModel">下拉框选择记录</param>
+        /// <param name="outputAction">用于输出消息的方法</param>
+        /// <returns></returns>
+        public async static Task<Result<HttpClient>> GetInitCacheClientAsync(CountryModel countryModel, Action<string, bool> outputAction)
+        {
+            var client = GetCacheClient(countryModel, out bool isCreated);
+            if (outputAction == null)
+            {
+                outputAction = (s, b) => { };
+            }
+            if (isCreated)
+            {
+                outputAction($"初始化加载器...", true);
+                Result<object> initResult = await Utils.InitQueryAsync(client, countryModel.Link, countryModel.ZipCode);
+                if (!initResult.Success)
+                {
+                    outputAction(initResult.Msg, false);
+                    return Result<HttpClient>.Error("");
+                }
+            }
+            else
+            {
+                outputAction($"获取缓存的加载器...", true);
+            }
+            return Result<HttpClient>.OK(client);
+        }
     }
 }
