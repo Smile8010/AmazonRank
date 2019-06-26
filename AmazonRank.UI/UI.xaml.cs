@@ -75,7 +75,7 @@ namespace AmazonRank.UI
             int linesCount = lines.Count;
             if (linesCount <= 0)
             {
-                MessageBox.Show("输入关键字!");
+                MessageBox.Show("输入关键词!");
                 return;
             }
 
@@ -106,7 +106,6 @@ namespace AmazonRank.UI
             var clientResult = await Utils.GetInitCacheClientAsync(selectValue, OuputLine);
             if (clientResult.Success)
             {
-                var client = clientResult.Data;
                 updateKwProcess(0, linesCount);
                 string Link = selectValue.Link;
 
@@ -114,8 +113,8 @@ namespace AmazonRank.UI
                 foreach (var kewWords in lines)
                 {
 
-                    OuputLine($"开始搜索关键字：【{kewWords}】");
-                    listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
+                    OuputLine($"开始搜索关键词：【{kewWords}】");
+                    listTaskResult.Add(seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
                     {
                         Asin = asin,
                         KeyWord = kewWords,
@@ -165,7 +164,7 @@ namespace AmazonRank.UI
             //    foreach (var kewWords in lines)
             //    {
 
-            //        OuputLine($"开始搜索关键字：【{kewWords}】");
+            //        OuputLine($"开始搜索关键词：【{kewWords}】");
             //        listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
             //        {
             //            Asin = asin,
@@ -222,15 +221,15 @@ namespace AmazonRank.UI
                         var sModel = searchResult.Data;
                         if (sModel.FindModels.Count <= 0)
                         {
-                            outputMsg = $"当前搜索完成，没有找到 关键字：【{sModel.KeyWord}】 对应的 Asin：【{sModel.Asin}】";
+                            outputMsg = $"关键词：【{sModel.KeyWord}】,没有找到对应的 Asin：【{sModel.Asin}】";
+                            //outputMsg = $"当前搜索完成，没有找到 关键词：【{sModel.KeyWord}】 对应的 Asin：【{sModel.Asin}】";
                         }
                         else
                         {
-                            sModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键字：【{l.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
-                            //outputMsg = $"搜索完成，关键字：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.Position}】，广告：【{(sModel.IsSponsored ? "是" : "否")}】,详情：【{sModel.DetailLink}】";
-                            queryResultList.Add(sModel);
+                            sModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
+                            //outputMsg = $"搜索完成，关键词：【{sModel.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{sModel.Position}】，广告：【{(sModel.IsSponsored ? "是" : "否")}】,详情：【{sModel.DetailLink}】";
                         }
-
+                        queryResultList.Add(sModel);
                         OuputLine(outputMsg);
                     }
                 }
@@ -300,7 +299,7 @@ namespace AmazonRank.UI
         }
 
         /// <summary>
-        /// 查询Asin关键字排名
+        /// 查询Asin关键词排名
         /// </summary>
         /// <param name="client"></param>
         /// <param name="keyWord"></param>

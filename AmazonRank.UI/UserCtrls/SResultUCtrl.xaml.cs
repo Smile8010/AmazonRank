@@ -35,17 +35,32 @@ namespace AmazonRank.UI.UserCtrls
                 var source = new List<dynamic>();
                 sModelList.ForEach(sModel =>
                 {
-                    sModel.FindModels.ForEach(l =>
+                    if (sModel.FindModels.Count > 0)
                     {
-                        source.Add(new {
-                            l.KeyWord,
-                            l.Page,
-                            l.Rank,
-                            l.IsSponsoredText,
-                            l.Pos,
-                            l.ResultNumString
+                        sModel.FindModels.ForEach(l =>
+                        {
+                            source.Add(new
+                            {
+                                l.KeyWord,
+                                l.Page,
+                                l.Rank,
+                                l.IsSponsoredText,
+                                l.Pos,
+                                l.ResultNumString
+                            });
                         });
-                    });
+                    }
+                    else {
+                        source.Add(new
+                        {
+                            sModel.KeyWord,
+                            Page = 0,
+                            Rank = 0,
+                            IsSponsoredText ="",
+                            Pos = 0,
+                            sModel.ResultNumString
+                        });
+                    }
                    
                 });
                 this.DGrid_SResult.ItemsSource = source;
