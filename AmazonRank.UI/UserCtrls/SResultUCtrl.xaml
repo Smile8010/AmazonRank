@@ -24,7 +24,7 @@
         </Grid>
         <DataGrid Grid.Row="1" AutoGenerateColumns="False" Name="DGrid_SResult" ItemsSource="{Binding}" >
             <DataGrid.Columns>
-                <DataGridTextColumn Header="关键字" Binding="{Binding KeyWord}" IsReadOnly="True" Width="3*" />
+                <DataGridTextColumn Header="关键词" Binding="{Binding KeyWord}" IsReadOnly="True" Width="3*" />
                 <DataGridTextColumn Header="搜索结果数" Binding="{Binding ResultNumString}" IsReadOnly="True" Width="3*" />
                 <DataGridTextColumn Header="页码" Binding="{Binding Page}" IsReadOnly="True" Width="2*" />
                 <DataGridTextColumn  Header="排名" Binding="{Binding Rank}" IsReadOnly="True" Width="2*"/>
