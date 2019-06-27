@@ -332,13 +332,10 @@ namespace AmazonRank.UI
 
                 if (!documentResult.Success)
                 {
-
                     return Result<SearchModel>.Error("搜索失败：" + documentResult.Msg);
                 }
 
-                HtmlDocument document = documentResult.Data;
-
-                string errorMsg = await getSearchFromDocumentAsync(document, sModel);
+                string errorMsg = await getSearchFromDocumentAsync(documentResult.Data, sModel);
 
                 if (!IsNullOrEmpty(errorMsg))
                 {
