@@ -32,6 +32,7 @@ namespace AmazonRank.UI
     {
         //string proxyIpAddress = string.Empty;
 
+
         public UI()
         {
             InitializeComponent();
@@ -108,21 +109,42 @@ namespace AmazonRank.UI
             {
                 updateKwProcess(0, linesCount);
                 string Link = selectValue.Link;
+                List<SearchModel> queryResultList = new List<SearchModel>();
+                // 启动线程处理队列
+                await Task.Run(() =>
+                 {
+                     int current = 1;
+                     Parallel.ForEach(lines, new ParallelOptions() { MaxDegreeOfParallelism = 5 }, keyWord =>
+                     {
+                         Result<SearchModel> searchResult = seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
+                         {
+                             Asin = asin,
+                             KeyWord = keyWord,
+                             Link = Link
+                         }).Result;
+                         updateKwProcess(current++, linesCount);
+                         if (!searchResult.Success)
+                         {
+                             OuputLine(searchResult.Msg);
+                         }
+                         else
+                         {
+                             string outputMsg = string.Empty;
+                             var sModel = searchResult.Data;
+                             if (sModel.FindModels.Count <= 0)
+                             {
+                                 outputMsg = $"关键词：【{sModel.KeyWord}】,没有找到对应的 Asin：【{sModel.Asin}】";
+                             }
+                             else
+                             {
+                                 sModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
+                             }
+                             queryResultList.Add(sModel);
+                             OuputLine(outputMsg);
+                         }
+                     });
+                 });
 
-                List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
-                foreach (var kewWords in lines)
-                {
-
-                    OuputLine($"开始搜索关键词：【{kewWords}】");
-                    listTaskResult.Add(seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
-                    {
-                        Asin = asin,
-                        KeyWord = kewWords,
-                        Link = Link
-                    }));
-                }
-
-                List<SearchModel> queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
                 if (queryResultList.Count > 0)
                 {
                     var dialogWin = new DialogWin();
@@ -138,56 +160,6 @@ namespace AmazonRank.UI
 
             setSearchStatus(true);
 
-            //var selectValue = this.CBoxCountry.SelectedValue;
-            //var client = Utils.GetCacheClient(selectValue, out bool isCreated);
-            //Result<object> initResult = null;
-            //if (isCreated)
-            //{
-            //    OuputLine($"初始化加载器...", true);
-            //    initResult = await Utils.InitQueryAsync(client, selectValue.Link, selectValue.ZipCode);
-            //}
-            //List<SearchModel> queryResultList = new List<SearchModel>();
-            //if (initResult != null && !initResult.Success)
-            //{
-            //    OuputLine(initResult.Msg);
-            //}
-            //else
-            //{
-            //    if (initResult == null)
-            //    {
-            //        OuputLine($"获取缓存的加载器...", true);
-            //    }
-            //    updateKwProcess(0, linesCount);
-            //    string Link = selectValue.Link;
-
-            //    List<Task<Result<SearchModel>>> listTaskResult = new List<Task<Result<SearchModel>>>();
-            //    foreach (var kewWords in lines)
-            //    {
-
-            //        OuputLine($"开始搜索关键词：【{kewWords}】");
-            //        listTaskResult.Add(seachKeyWordAsinRankAsync(client, new SearchModel
-            //        {
-            //            Asin = asin,
-            //            KeyWord = kewWords,
-            //            Link = Link
-            //        }));
-            //    }
-
-            //    queryResultList = await getSearchModelListAsync(listTaskResult, linesCount);
-            //}
-            //if (queryResultList.Count > 0)
-            //{
-            //    var dialogWin = new DialogWin();
-            //    dialogWin.Title = "搜索结果";
-            //    dialogWin.Width = 450;
-            //    dialogWin.Height = 200;
-            //    SResultUCtrl srUCtrl = new SResultUCtrl();
-            //    srUCtrl.UpdateDataSource(queryResultList);
-            //    dialogWin.Container.Children.Add(srUCtrl);
-            //    dialogWin.Show();
-            //}
-
-            //setSearchStatus(true);
 
         }
 
@@ -295,7 +267,10 @@ namespace AmazonRank.UI
         /// <param name="msg"></param>
         private void OuputLine(string msg, bool isClear = false)
         {
-            this.TBoxOutput.OuputLine(msg, isClear);
+            this.TBoxOutput.Dispatcher.Invoke((Action)(() =>
+            {
+                this.TBoxOutput.OuputLine(msg, isClear);
+            }));
         }
 
         /// <summary>
@@ -464,9 +439,13 @@ namespace AmazonRank.UI
         /// <param name="total"></param>
         private void updateKwProcess(int current, int total)
         {
-            this.Label_KwProcess.Content = $"{current}/{total}";
-            this.ProgressBar_KwProcess.Maximum = total;
-            this.ProgressBar_KwProcess.Value = current;
+            this.Dispatcher.Invoke((Action)(() =>
+            {
+                this.Label_KwProcess.Content = $"{current}/{total}";
+                this.ProgressBar_KwProcess.Maximum = total;
+                this.ProgressBar_KwProcess.Value = current;
+            }));
+
         }
 
         private void Window_Closed(object sender, EventArgs e)
