@@ -42,6 +42,8 @@ namespace AmazonRank.UI
 
         public List<FindModel> FindModels { get; set; } = new List<FindModel>();
 
+        public string ErrorMsg { get; set; } = string.Empty;
+
         //public SearchResult SResult { get; set; } = null;
     }
 

@@ -114,34 +114,33 @@ namespace AmazonRank.UI
                 await Task.Run(() =>
                  {
                      int current = 1;
-                     Parallel.ForEach(lines, new ParallelOptions() { MaxDegreeOfParallelism = 5 }, keyWord =>
+                     Parallel.ForEach(lines, new ParallelOptions() { MaxDegreeOfParallelism = 10 }, keyWord =>
                      {
-                         Result<SearchModel> searchResult = seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
+                         SearchModel searchModel = seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
                          {
                              Asin = asin,
                              KeyWord = keyWord,
                              Link = Link
                          }).Result;
                          updateKwProcess(current++, linesCount);
-                         if (!searchResult.Success)
+                         string outputMsg = string.Empty;
+                         if (!IsNullOrEmpty(searchModel.ErrorMsg))
                          {
-                             OuputLine(searchResult.Msg);
+                             outputMsg = $"关键词：【{searchModel.KeyWord}】,异常：{searchModel.ErrorMsg}";
                          }
                          else
                          {
-                             string outputMsg = string.Empty;
-                             var sModel = searchResult.Data;
-                             if (sModel.FindModels.Count <= 0)
+                             if (searchModel.FindModels.Count <= 0)
                              {
-                                 outputMsg = $"关键词：【{sModel.KeyWord}】,没有找到对应的 Asin：【{sModel.Asin}】";
+                                 outputMsg = $"关键词：【{searchModel.KeyWord}】,没有找到对应的 Asin：【{searchModel.Asin}】";
                              }
                              else
                              {
-                                 sModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{sModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
+                                 searchModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{searchModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
                              }
-                             queryResultList.Add(sModel);
-                             OuputLine(outputMsg);
                          }
+                         queryResultList.Add(searchModel);
+                         OuputLine(outputMsg);
                      });
                  });
 
@@ -151,9 +150,9 @@ namespace AmazonRank.UI
                     dialogWin.Title = "搜索结果";
                     dialogWin.Width = 450;
                     dialogWin.Height = 200;
-                    SResultUCtrl srUCtrl = new SResultUCtrl();
-                    srUCtrl.UpdateDataSource(queryResultList);
-                    dialogWin.Container.Children.Add(srUCtrl);
+                    SResultUCtrl sRCtrl = new SResultUCtrl();
+                    dialogWin.Container.Children.Add(sRCtrl);
+                    sRCtrl.UpdateDataSource(queryResultList);
                     dialogWin.Show();
                 }
             }
@@ -277,9 +276,9 @@ namespace AmazonRank.UI
         /// 查询Asin关键词排名
         /// </summary>
         /// <param name="client"></param>
-        /// <param name="keyWord"></param>
-        /// <param name="Asin"></param>
-        private async Task<Result<SearchModel>> seachKeyWordAsinRankAsync(HttpClient client, SearchModel sModel)
+        /// <param name="sModel"></param>
+        /// <returns></returns>
+        private async Task<SearchModel> seachKeyWordAsinRankAsync(HttpClient client, SearchModel sModel)
         {
             try
             {
@@ -304,22 +303,27 @@ namespace AmazonRank.UI
                 string searchHtml = await searchResponse.Content.ReadAsStringAsync();
 
                 Result<HtmlDocument> documentResult = await Utils.CheckIsAntiReptilePageAsync(searchHtml);
-
+                //throw new Exception("故意异常");
                 if (!documentResult.Success)
                 {
-                    return Result<SearchModel>.Error("搜索失败：" + documentResult.Msg);
+                    sModel.ErrorMsg = "搜索失败：" + documentResult.Msg;
+                    return sModel;
+                    //return Result<SearchModel>.Error("搜索失败：" + documentResult.Msg);
                 }
 
                 string errorMsg = await getSearchFromDocumentAsync(documentResult.Data, sModel);
 
                 if (!IsNullOrEmpty(errorMsg))
                 {
-                    return Result<SearchModel>.Error(errorMsg);
+                    sModel.ErrorMsg = errorMsg;
+                    return sModel;
+                    //return Result<SearchModel>.Error(errorMsg);
                 }
 
                 if (sModel.isFindedAsin || sModel.Page + 1 > sModel.TotalPage)
                 {
-                    return Result<SearchModel>.OK("搜索完成", sModel);
+                    return sModel;
+                    //return Result<SearchModel>.OK("搜索完成", sModel);
                 }
 
                 sModel.Page++;
@@ -328,9 +332,70 @@ namespace AmazonRank.UI
             }
             catch (Exception ex)
             {
-                return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
+                sModel.ErrorMsg = $"搜索异常：{ex.Message}";
+                return sModel;
+                //return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
             }
         }
+
+        ///// <summary>
+        ///// 查询Asin关键词排名
+        ///// </summary>
+        ///// <param name="client"></param>
+        ///// <param name="keyWord"></param>
+        ///// <param name="Asin"></param>
+        //private async Task<Result<SearchModel>> seachKeyWordAsinRankAsync(HttpClient client, SearchModel sModel)
+        //{
+        //    try
+        //    {
+        //        if (sModel.Page == 1)
+        //        {
+        //            OuputLine($"关键词：【{sModel.KeyWord}】开始加载并检索第一页。");
+        //        }
+        //        else
+        //        {
+        //            OuputLine($"关键词：【{sModel.KeyWord}】当前搜索页面：【{sModel.Page}/{sModel.TotalPage}】");
+        //        }
+
+        //        string requestURL = $"{sModel.Link}/s?k={sModel.KeyWord}";
+        //        if (sModel.Page > 1)
+        //        {
+        //            requestURL = $"{requestURL}&page={sModel.Page}";
+        //        }
+        //        var searchResponse = await client.GetAsync(new Uri(requestURL));
+
+        //        searchResponse.EnsureSuccessStatusCode();
+
+        //        string searchHtml = await searchResponse.Content.ReadAsStringAsync();
+
+        //        Result<HtmlDocument> documentResult = await Utils.CheckIsAntiReptilePageAsync(searchHtml);
+
+        //        if (!documentResult.Success)
+        //        {
+        //            return Result<SearchModel>.Error("搜索失败：" + documentResult.Msg);
+        //        }
+
+        //        string errorMsg = await getSearchFromDocumentAsync(documentResult.Data, sModel);
+
+        //        if (!IsNullOrEmpty(errorMsg))
+        //        {
+        //            return Result<SearchModel>.Error(errorMsg);
+        //        }
+
+        //        if (sModel.isFindedAsin || sModel.Page + 1 > sModel.TotalPage)
+        //        {
+        //            return Result<SearchModel>.OK("搜索完成", sModel);
+        //        }
+
+        //        sModel.Page++;
+        //        return await seachKeyWordAsinRankAsync(client, sModel);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Result<SearchModel>.Error($"搜索异常：{ex.Message}");
+        //    }
+        //}
 
         /// <summary>
         /// 从 document 中搜索数据

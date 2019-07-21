@@ -35,6 +35,7 @@ namespace AmazonRank.UI.UserCtrls
                 var source = new List<dynamic>();
                 sModelList.ForEach(sModel =>
                 {
+                    bool IsError = !string.IsNullOrEmpty(sModel.ErrorMsg);
                     if (sModel.FindModels.Count > 0)
                     {
                         sModel.FindModels.ForEach(l =>
@@ -46,7 +47,9 @@ namespace AmazonRank.UI.UserCtrls
                                 l.Rank,
                                 l.IsSponsoredText,
                                 l.Pos,
-                                l.ResultNumString
+                                l.ResultNumString,
+                                sModel.ErrorMsg,
+                                KeyWordFColor=IsError? Brushes.Red: Brushes.Black
                             });
                         });
                     }
@@ -58,7 +61,9 @@ namespace AmazonRank.UI.UserCtrls
                             Rank = 0,
                             IsSponsoredText ="",
                             Pos = 0,
-                            sModel.ResultNumString
+                            sModel.ResultNumString,
+                            sModel.ErrorMsg  ,
+                            KeyWordFColor = IsError ? Brushes.Red : Brushes.Black
                         });
                     }
                    
@@ -96,12 +101,12 @@ namespace AmazonRank.UI.UserCtrls
                     sw.WriteLine($"Asin:,{this.TBox_Asin.Text}");
 
                     //表头
-                    sw.WriteLine("关键字,搜索结果数,页码,排名,页面位置,广告");
+                    sw.WriteLine("关键字,搜索结果数,页码,排名,页面位置,广告,异常");
                     
                     // 表内容
                     exportList.ForEach(l =>
                     {
-                        sw.WriteLine($"{formatCsvField(Convert.ToString(l.KeyWord))},{formatCsvField(Convert.ToString(l.ResultNumString))},{formatCsvField(Convert.ToString(l.Page))},{formatCsvField(Convert.ToString(l.Rank))},{formatCsvField(Convert.ToString(l.Pos))},{formatCsvField(Convert.ToString(l.IsSponsoredText))}");
+                        sw.WriteLine($"{formatCsvField(Convert.ToString(l.KeyWord))},{formatCsvField(Convert.ToString(l.ResultNumString))},{formatCsvField(Convert.ToString(l.Page))},{formatCsvField(Convert.ToString(l.Rank))},{formatCsvField(Convert.ToString(l.Pos))},{formatCsvField(Convert.ToString(l.IsSponsoredText))},{formatCsvField(Convert.ToString(l.ErrorMsg))}");
                     });
                     sw.Close();
                     stream.Close();
@@ -127,5 +132,15 @@ namespace AmazonRank.UI.UserCtrls
             data = "\"" + data + "\"";
             return data;
         }
+
+        //private void DGrid_SResult_LoadingRow(object sender, DataGridRowEventArgs e)
+        //{
+        //    //状态判断
+        //    if (((dynamic)(e.Row.DataContext)).IsError)
+        //    {
+        //        //红色
+        //        (DGrid_SResult.Columns[0].GetCellContent(e.Row).FindName("KeyWord") as DataGridTextColumn).Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0));
+        //    }
+        //}
     }
 }

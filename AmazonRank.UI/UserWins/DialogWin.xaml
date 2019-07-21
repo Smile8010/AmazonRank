@@ -6,7 +6,6 @@
         xmlns:local="clr-namespace:AmazonRank.UI.UserWins"
         mc:Ignorable="d"
         Title="DialogWin" Height="450" Width="800">
-    <Grid Name="Container">
-        
+    <Grid x:Name="Container">
     </Grid>
 </Window>
