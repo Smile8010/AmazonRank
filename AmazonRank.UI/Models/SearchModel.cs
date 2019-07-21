@@ -20,11 +20,27 @@ namespace AmazonRank.UI
 
         public int Rank { get; set; } = 0;
 
+        /// <summary>
+        /// 搜索类型 0 非广告，1 仅广告，2 两者
+        /// </summary>
+        public int SearchType { get; set; } = 0;
+
         public bool isFindedAsin
         {
             get
             {
-                return FindModels.Count >= 2;
+                if (SearchType == 0)
+                {
+                    return FindModels.Any(o => !o.IsSponsored);
+                }
+                else if (SearchType == 1)
+                {
+                    return FindModels.Any(o => o.IsSponsored);
+                }
+                else
+                {
+                    return FindModels.Count > 2;
+                }
             }
         }
 

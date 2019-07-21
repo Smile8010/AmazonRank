@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AmazonRank.UI.UserWins"
         mc:Ignorable="d"
-        Title="DialogWin" Height="450" Width="800">
+        Title="DialogWin" Height="380.396" Width="957.014">
     <Grid x:Name="Container">
     </Grid>
 </Window>

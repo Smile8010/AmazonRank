@@ -36,6 +36,15 @@ namespace AmazonRank.UI.UserCtrls
                 sModelList.ForEach(sModel =>
                 {
                     bool IsError = !string.IsNullOrEmpty(sModel.ErrorMsg);
+                    if (sModel.SearchType == 0)
+                    {
+                        sModel.FindModels.RemoveAll(o => o.IsSponsored);
+                    }
+                    else if (sModel.SearchType == 1)
+                    {
+                        sModel.FindModels.RemoveAll(o => !o.IsSponsored);
+                    }
+
                     if (sModel.FindModels.Count > 0)
                     {
                         sModel.FindModels.ForEach(l =>

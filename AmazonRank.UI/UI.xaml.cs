@@ -60,6 +60,23 @@ namespace AmazonRank.UI
             //});
 
             //this.CBox_Country.SelectedIndex = 0;
+
+            List<dynamic> selectTypeList = new List<dynamic>() {
+                new {
+                    Key="非广告",
+                    Value=0,
+                },
+                new {
+                    Key="仅广告",
+                    Value=1
+                },
+                new {
+                    Key="两者都要",
+                    Value=2
+                }
+            };
+            this.CBoxSearchType.ItemsSource = selectTypeList;
+            this.CBoxSearchType.SelectedIndex = 0;
         }
 
 
@@ -85,6 +102,8 @@ namespace AmazonRank.UI
                 MessageBox.Show("选择站点!");
                 return;
             }
+
+            int searchType = this.CBoxSearchType.SelectedIndex;
 
             //var dialogWin1 = new DialogWin();
             //dialogWin1.Title = "搜索结果";
@@ -120,7 +139,8 @@ namespace AmazonRank.UI
                          {
                              Asin = asin,
                              KeyWord = keyWord,
-                             Link = Link
+                             Link = Link,
+                             SearchType = searchType
                          }).Result;
                          updateKwProcess(current++, linesCount);
                          string outputMsg = string.Empty;
@@ -412,7 +432,7 @@ namespace AmazonRank.UI
 
                 if (containNode == null)
                 {
-                    return "找不到 id = search 的元素！";
+                    return "关键词有误，找不到相关结果";
                 }
 
                 if (sModel.Page == 1)
