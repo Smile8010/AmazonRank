@@ -316,6 +316,7 @@ namespace AmazonRank.UI
                 {
                     requestURL = $"{requestURL}&page={sModel.Page}";
                 }
+                Utils.RefreshRandomUserAgent(client);
                 var searchResponse = await client.GetAsync(new Uri(requestURL));
 
                 searchResponse.EnsureSuccessStatusCode();

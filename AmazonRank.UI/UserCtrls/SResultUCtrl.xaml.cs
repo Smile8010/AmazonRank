@@ -44,41 +44,52 @@ namespace AmazonRank.UI.UserCtrls
                     {
                         sModel.FindModels.RemoveAll(o => !o.IsSponsored);
                     }
-
+                    string SponsoredRank = string.Empty, SponsoredPos = string.Empty, SponsoredPage = string.Empty;
                     if (sModel.FindModels.Count > 0)
                     {
-                        sModel.FindModels.ForEach(l =>
-                        {
-                            source.Add(new
-                            {
-                                l.KeyWord,
-                                l.Page,
-                                l.Rank,
-                                l.IsSponsoredText,
-                                l.Pos,
-                                l.ResultNumString,
-                                sModel.ErrorMsg,
-                                KeyWordFColor=IsError? Brushes.Red: Brushes.Black
-                            });
-                        });
-                    }
-                    else {
+                        var noSponsoredModel = sModel.FindModels.FirstOrDefault(o => !o.IsSponsored);
+                        var SponsoredModel = sModel.FindModels.FirstOrDefault(o => o.IsSponsored);
                         source.Add(new
                         {
                             sModel.KeyWord,
-                            Page = 0,
-                            Rank = 0,
-                            IsSponsoredText ="",
-                            Pos = 0,
+                            Page = IntToString(noSponsoredModel?.Page ?? 0),
+                            Rank = IntToString(noSponsoredModel?.Rank ?? 0),
+                            Pos = IntToString(noSponsoredModel?.Pos ?? 0),
                             sModel.ResultNumString,
-                            sModel.ErrorMsg  ,
+                            SponsoredRank = IntToString(SponsoredModel?.Rank ?? 0),
+                            SponsoredPos = IntToString(SponsoredModel?.Pos ?? 0),
+                            SponsoredPage = IntToString(SponsoredModel?.Page ?? 0),
+                            sModel.ErrorMsg,
                             KeyWordFColor = IsError ? Brushes.Red : Brushes.Black
                         });
                     }
-                   
+                    else
+                    {
+                        source.Add(new
+                        {
+                            sModel.KeyWord,
+                            Page = string.Empty,
+                            Rank = string.Empty,
+                            Pos = string.Empty,
+                            sModel.ResultNumString,
+                            sModel.ErrorMsg,
+                            SponsoredRank,
+                            SponsoredPos,
+                            SponsoredPage,
+                            KeyWordFColor = IsError ? Brushes.Red : Brushes.Black
+                        });
+                    }
+
                 });
                 this.DGrid_SResult.ItemsSource = source;
             }
+        }
+
+        private string IntToString(int value) {
+            if (value <= 0) {
+                return string.Empty;
+            }
+            return value.ToString();
         }
 
         private void Btn_Export_Click(object sender, RoutedEventArgs e)
@@ -111,7 +122,7 @@ namespace AmazonRank.UI.UserCtrls
 
                     //表头
                     sw.WriteLine("关键字,搜索结果数,页码,排名,页面位置,广告,异常");
-                    
+
                     // 表内容
                     exportList.ForEach(l =>
                     {
@@ -134,7 +145,7 @@ namespace AmazonRank.UI.UserCtrls
         /// </summary>
         /// <param name="data">数据</param>
         /// <returns>格式化数据</returns>
-        private  string formatCsvField(string data)
+        private string formatCsvField(string data)
         {
             if (string.IsNullOrEmpty(data)) { return string.Empty; }
             data = data.Replace("\"", "\"\"");

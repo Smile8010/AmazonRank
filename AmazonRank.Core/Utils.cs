@@ -183,9 +183,30 @@ namespace AmazonRank.Core
             client.Timeout = new TimeSpan(0, 0, 1, 0);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-            client.DefaultRequestHeaders.Add("User-Agent", GetConfigValue("Request.UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"));
+            client.DefaultRequestHeaders.Add("User-Agent", GetRandomUserAgent());
             client.DefaultRequestHeaders.Connection.Add("keep-alive");
             return client;
+        }
+
+        /// <summary>
+        /// 获取随机User-Agent
+        /// </summary>
+        /// <returns></returns>
+        public static string GetRandomUserAgent() {
+            var randomValue = GetConfigValue("Request.UserAgent.Random");
+            if (IsNullOrEmpty(randomValue)) {
+                return GetConfigValue("Request.UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
+            }
+            return randomValue.Replace("{{RandomValue}}", new Random().Next(60,76).ToString());
+        }
+
+        /// <summary>
+        /// 刷新User-Agent
+        /// </summary>
+        /// <param name="client"></param>
+        public static void RefreshRandomUserAgent(HttpClient client) {
+            client.DefaultRequestHeaders.Remove("User-Agent");
+            client.DefaultRequestHeaders.Add("User-Agent", GetRandomUserAgent());
         }
 
         /// <summary>

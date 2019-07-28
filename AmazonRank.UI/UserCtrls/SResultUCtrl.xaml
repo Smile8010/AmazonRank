@@ -24,7 +24,7 @@
         </Grid>
         <DataGrid Grid.Row="1" AutoGenerateColumns="False" Name="DGrid_SResult" ItemsSource="{Binding}" >
             <DataGrid.Columns>
-                <DataGridTemplateColumn Width="3*">
+                <DataGridTemplateColumn Width="2*">
                     <DataGridTemplateColumn.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock Text="关键词" />
@@ -42,7 +42,9 @@
                 <DataGridTextColumn Header="页码" x:Name="Page" Binding="{Binding Page}" IsReadOnly="True" Width="2*" />
                 <DataGridTextColumn  Header="排名" x:Name="Rank" Binding="{Binding Rank}" IsReadOnly="True" Width="2*"/>
                 <DataGridTextColumn  Header="页面位置" x:Name="Pos" Binding="{Binding Pos}" IsReadOnly="True" Width="2*"/>
-                <DataGridTextColumn Header="广告" x:Name="IsSponsoredText" Binding="{Binding IsSponsoredText}" IsReadOnly="True" Width="1*"/>
+                <DataGridTextColumn  Header="广告页码" x:Name="SponsoredPage" Binding="{Binding SponsoredPage}" IsReadOnly="True" Width="2*"/>
+                <DataGridTextColumn Header="广告排名" x:Name="SponsoredRank" Binding="{Binding SponsoredRank}" IsReadOnly="True" Width="2*"/>
+                <DataGridTextColumn Header="广告位置" x:Name="SponsoredPos" Binding="{Binding SponsoredPos}" IsReadOnly="True" Width="2*"/>
                 <DataGridTextColumn Header="异常" x:Name="ErrorMsg" Binding="{Binding ErrorMsg}" IsReadOnly="True"  Width="2*" />
             </DataGrid.Columns>
         </DataGrid>
