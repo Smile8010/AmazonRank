@@ -121,12 +121,12 @@ namespace AmazonRank.UI.UserCtrls
                     sw.WriteLine($"Asin:,{this.TBox_Asin.Text}");
 
                     //表头
-                    sw.WriteLine("关键字,搜索结果数,页码,排名,页面位置,广告,异常");
+                    sw.WriteLine("关键字,搜索结果数,页码,排名,页面位置,广告页码,广告排名,广告位置,异常");
 
                     // 表内容
                     exportList.ForEach(l =>
                     {
-                        sw.WriteLine($"{formatCsvField(Convert.ToString(l.KeyWord))},{formatCsvField(Convert.ToString(l.ResultNumString))},{formatCsvField(Convert.ToString(l.Page))},{formatCsvField(Convert.ToString(l.Rank))},{formatCsvField(Convert.ToString(l.Pos))},{formatCsvField(Convert.ToString(l.IsSponsoredText))},{formatCsvField(Convert.ToString(l.ErrorMsg))}");
+                        sw.WriteLine($"{formatCsvField(Convert.ToString(l.KeyWord))},{formatCsvField(Convert.ToString(l.ResultNumString))},{formatCsvField(Convert.ToString(l.Page))},{formatCsvField(Convert.ToString(l.Rank))},{formatCsvField(Convert.ToString(l.Pos))},{formatCsvField(Convert.ToString(l.SponsoredPage))},{formatCsvField(Convert.ToString(l.SponsoredRank))},{formatCsvField(Convert.ToString(l.SponsoredPos))},{formatCsvField(Convert.ToString(l.ErrorMsg))}");
                     });
                     sw.Close();
                     stream.Close();
