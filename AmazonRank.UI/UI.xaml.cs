@@ -128,42 +128,9 @@ namespace AmazonRank.UI
             {
                 updateKwProcess(0, linesCount);
                 string Link = selectValue.Link;
-                List<SearchModel> queryResultList = new List<SearchModel>();
                 // 启动线程处理队列
-                await Task.Run(() =>
-                 {
-                     int current = 1;
-                     Parallel.ForEach(lines, new ParallelOptions() { MaxDegreeOfParallelism = 10 }, keyWord =>
-                     {
-                         SearchModel searchModel = seachKeyWordAsinRankAsync(clientResult.Data, new SearchModel
-                         {
-                             Asin = asin,
-                             KeyWord = keyWord,
-                             Link = Link,
-                             SearchType = searchType
-                         }).Result;
-                         updateKwProcess(current++, linesCount);
-                         string outputMsg = string.Empty;
-                         if (!IsNullOrEmpty(searchModel.ErrorMsg))
-                         {
-                             outputMsg = $"关键词：【{searchModel.KeyWord}】,异常：{searchModel.ErrorMsg}";
-                         }
-                         else
-                         {
-                             if (searchModel.FindModels.Count <= 0)
-                             {
-                                 outputMsg = $"关键词：【{searchModel.KeyWord}】,没有找到对应的 Asin：【{searchModel.Asin}】";
-                             }
-                             else
-                             {
-                                 searchModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{searchModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
-                             }
-                         }
-                         queryResultList.Add(searchModel);
-                         OuputLine(outputMsg);
-                     });
-                 });
-
+                var queryResultList = await queryResultListAsync(lines, clientResult.Data, asin, Link, searchType,process=> updateKwProcess(process, linesCount));
+                queryResultList = queryResultList.OrderBy(o => lines.IndexOf(o.KeyWord)).ToList();
                 if (queryResultList.Count > 0)
                 {
                     var dialogWin = new DialogWin();
@@ -180,6 +147,57 @@ namespace AmazonRank.UI
             setSearchStatus(true);
 
 
+        }
+
+        /// <summary>
+        /// 查询结果列表
+        /// </summary>
+        /// <param name="lines"></param>
+        /// <param name="client"></param>
+        /// <param name="asin"></param>
+        /// <param name="Link"></param>
+        /// <param name="searchType"></param>
+        /// <param name="processAction"></param>
+        /// <returns></returns>
+        private Task<List<SearchModel>> queryResultListAsync(List<string> lines, HttpClient client, string asin, string Link, int searchType,Action<int> processAction)
+        {
+            return Task.Run(() =>
+            {
+                List<SearchModel> queryResultList = new List<SearchModel>();
+                int current = 1;
+                //int linesCount = lines.Count;
+                Parallel.ForEach(lines, new ParallelOptions() { MaxDegreeOfParallelism = 10 }, keyWord =>
+                {
+                    SearchModel searchModel = seachKeyWordAsinRankAsync(client, new SearchModel
+                    {
+                        Asin = asin,
+                        KeyWord = keyWord,
+                        Link = Link,
+                        SearchType = searchType
+                    }).Result;
+                    processAction?.Invoke(current++);
+                    string outputMsg = string.Empty;
+                    if (!IsNullOrEmpty(searchModel.ErrorMsg))
+                    {
+                        outputMsg = $"关键词：【{searchModel.KeyWord}】,异常：{searchModel.ErrorMsg}";
+                    }
+                    else
+                    {
+                        if (searchModel.FindModels.Count <= 0)
+                        {
+                            outputMsg = $"关键词：【{searchModel.KeyWord}】,没有找到对应的 Asin：【{searchModel.Asin}】";
+                        }
+                        else
+                        {
+                            searchModel.FindModels.ForEach(l => outputMsg += $"搜索完成，关键词：【{l.KeyWord}】, Asin：【{searchModel.Asin}】,位置：【{l.Position}】，广告：【{(l.IsSponsored ? "是" : "否")}】");
+                        }
+                    }
+                    queryResultList.Add(searchModel);
+                    OuputLine(outputMsg);
+                });
+
+                return queryResultList;
+            });
         }
 
 
@@ -439,7 +457,8 @@ namespace AmazonRank.UI
                 if (sModel.Page == 1)
                 {
                     // 赋值总页数
-                    var pageLi = containNode.SelectNodes("./div[1]/div[2]/div/span[7]/div/div/div/ul/li");
+                    //var pageLi = containNode.SelectNodes("./div[1]/div[2]/div/span[7]/div/div/div/ul/li");
+                    var pageLi = containNode.SelectNodes(".//ul[@class='a-pagination']/li");
                     if (pageLi != null)
                     {
                         if (pageLi.Count > 2)
