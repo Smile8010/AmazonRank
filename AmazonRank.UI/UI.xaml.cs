@@ -489,7 +489,8 @@ namespace AmazonRank.UI
                     }
                 }
 
-                var nodes = containNode.SelectNodes("//div[1]/div[2]/div/span[3]/div[1]/div");
+                //var nodes = containNode.SelectNodes("//div[1]/div[2]/div/span[3]/div[1]/div");
+                var nodes = containNode.SelectNodes("//div[@data-asin][@data-index]");
                 foreach (var node in nodes)
                 {
                     sModel.Rank++;
