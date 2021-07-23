@@ -9,6 +9,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using static System.String;
+using Polly;
+using Newtonsoft.Json.Linq;
+using System.Web;
+using System.Text.RegularExpressions;
 
 namespace AmazonRank.Core
 {
@@ -20,8 +24,9 @@ namespace AmazonRank.Core
         /// <param name="client"></param>
         /// <param name="link"></param>
         /// <param name="zipCode"></param>
+        /// <param name="outputAction"></param>
         /// <returns></returns>
-        public static async Task<Result<object>> InitQueryAsync(HttpClient client, string link, string zipCode)
+        public static async Task<Result<object>> InitQueryAsync(HttpClient client, string link, string zipCode, Action<string, bool> outputAction)
         {
             try
             {
@@ -37,26 +42,58 @@ namespace AmazonRank.Core
                     return Result<object>.Error("初始化失败：" + documentResult.Msg);
                 }
 
-                List<KeyValuePair<string, string>> paramsList = new List<KeyValuePair<string, string>>() {
-                    new KeyValuePair<string, string>("locationType","LOCATION_INPUT"),
-                    new KeyValuePair<string, string>("zipCode",zipCode),
-                    new KeyValuePair<string, string>("storeContext","generic"),
-                    new KeyValuePair<string, string>("deviceType","web"),
-                    new KeyValuePair<string, string>("pageType","Gateway"),
-                    new KeyValuePair<string, string>("actionSource","glow")
-                };
-
-                var setResponse = await client.PostAsync($"{link}/gp/delivery/ajax/address-change.html", new FormUrlEncodedContent(paramsList));
-                setResponse.EnsureSuccessStatusCode();
-
-                var responseText = await setResponse.Content.ReadAsStringAsync();
-
-                var data = new { isValidAddress = 0 };
-
-                data = JsonConvert.DeserializeAnonymousType(responseText, data);
-                if (data == null || data.isValidAddress != 1)
+                // 获取设置 anti-csrftoken-a2z token
+                var singleNode = documentResult.Data.DocumentNode.SelectSingleNode("//span[@id='nav-global-location-data-modal-action']");
+                string anti_csrftoken_a2z = string.Empty;
+                if (singleNode != null)
                 {
-                    return Result<object>.Error("无法设置收货目的地！");
+                    var modelJson = singleNode.GetAttributeValue("data-a-modal", string.Empty);
+                    if (!IsNullOrEmpty(modelJson))
+                    {
+                        var modelJobject = JsonConvert.DeserializeObject<JObject>(HttpUtility.HtmlDecode(modelJson));
+                        if (modelJobject != null && modelJobject.ContainsKey("ajaxHeaders"))
+                        {
+                            string addressSelectionURL = modelJobject.Value<string>("url");
+                            var ajaxHeaders = modelJobject["ajaxHeaders"];
+                            anti_csrftoken_a2z = ajaxHeaders.Value<string>("anti-csrftoken-a2z");
+                            HttpContent addressSelectionContent = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>());
+                            addressSelectionContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                            addressSelectionContent.Headers.Add("anti-csrftoken-a2z", anti_csrftoken_a2z);
+                            var setResponse = await client.PostAsync(link + addressSelectionURL, addressSelectionContent);
+                            setResponse.EnsureSuccessStatusCode();
+                            var responseText = await setResponse.Content.ReadAsStringAsync();
+                            // <script type="text/javascript">P.now("GLUXWidget").execute(function(GLUXWidget){ if(GLUXWidget===undefined){P.declare("GLUXWidget", {COUNTRY_CODE : "US", COUNTRY_LIST_PLACEHOLDER : "Ship outside the US", CITY_LIST_PLACEHOLDER : "", WEBLABS : {"CART_PACKARD_LOCATION_DISPLAY_111103":"C","MULTI_LOCALE_CITIES_250112":"C","PACKARD_WEB_SPLIT_ZIPCODE_121888":"C","AUI_TYPERAMP_TARGETED_MOBILE_279980":"C","AB_GLOW_COMPANY_NAME_315982":"C","AUI_MM_DESKTOP_TARGETED_LAUNCH_291922":"C","AUI_TYPERAMP_MOBILE_265778":"C","AUI_MM_DESKTOP_TARGETED_EXP_291928":"C","PACKARD_GLOBAL_DESKTOP_124721":"T1"}, INITIAL_DISPLAY_ADDRESS_INDEX : 2, PCD_ENTRIES : [], GLOW_TITLE : "Choose your location", CONFIRM_HEADER : "You're now shopping for delivery to:", CSRF_TOKEN : "gGAqTApyd77ezOglPbCXkpuXdnR5Y2K8xRASkzcAAAAMAAAAAGD6hdZyYXcAAAAA", IDs:{"ADDRESS_LIST":"GLUXAddressList","ADDRESS_LIST_DELIVERY":"GLUXAddressListDelivery","ADDRESS_LIST_PICKUP":"GLUXAddressListPickup","ADDRESS_BLOCK":"GLUXAddressBlock","ADDESS_SELECTION_PLACEHOLDER":"GLUXAddressSelectionPlaceHolder","ADDRESS_SET_ERROR":"GLUXAddressSetError","ADDRESS_SUCCESS_PLACEHOLDER":"GLUXHiddenSuccessSelectedAddressPlaceholder","CHANGE_POSTAL_CODE_LINK":"GLUXChangePostalCodeLink","CONFIRM_CLOSE":"GLUXConfirmClose","CONFIRM_CLOSE_LABEL":"GLUXConfirmClose-announce","COUNTRY_HIDDEN_DIV":"GLUXHiddenCountryDiv","COUNTRY_LIST":"GLUXCountryList"
+
+                            //string pattern = @"of\s(?<num>[\w\W]+)\sresults";
+                            //var m = Regex.Match(resultNumNode.InnerText, pattern);
+
+                            //string numStr = m.Groups["num"].Value;
+                            //if (!IsNullOrEmpty(numStr))
+                            //{
+                            //    sModel.ResultNumString = numStr;
+                            //}
+
+                            string pattern =@"CSRF_TOKEN[^""]+""(?<token>[^""]*?)""";
+                            var m = Regex.Match(responseText, pattern);
+                            if (m.Success)
+                                anti_csrftoken_a2z = m.Groups["token"].Value;
+                        }
+                    }
+                }
+
+                if (IsNullOrEmpty(anti_csrftoken_a2z))
+                {
+                    outputAction($"设置收货目的地：{zipCode} 失败,无法获取 请求token ", false);
+                }
+                else
+                {
+                    bool isValid = await Policy.HandleResult<bool>(o => !o).WaitAndRetryAsync(3, o => TimeSpan.FromMilliseconds(100))
+                        .ExecuteAsync(() => addressChangeAsync(client, link, zipCode, anti_csrftoken_a2z));
+
+                    if (!isValid)
+                    {
+                        outputAction($"设置收货目的地：{zipCode} 失败", false);
+                    }
                 }
 
                 return Result<object>.OK();
@@ -66,6 +103,35 @@ namespace AmazonRank.Core
             {
                 return Result<object>.Error($"初始化查询异常：{ex.Message}");
             }
+        }
+
+        static async Task<bool> addressChangeAsync(HttpClient client, string link, string zipCode, string anti_csrftoken_a2z)
+        {
+            List<KeyValuePair<string, string>> paramsList = new List<KeyValuePair<string, string>>() {
+                    new KeyValuePair<string, string>("locationType","LOCATION_INPUT"),
+                    new KeyValuePair<string, string>("zipCode",zipCode),
+                    new KeyValuePair<string, string>("storeContext","generic"),
+                    new KeyValuePair<string, string>("deviceType","web"),
+                    new KeyValuePair<string, string>("pageType","Gateway"),
+                    new KeyValuePair<string, string>("actionSource","glow"),
+                    new KeyValuePair<string, string>("almBrandId","undefined"),
+                };
+
+            HttpContent content = new FormUrlEncodedContent(paramsList);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+            content.Headers.Add("anti-csrftoken-a2z", anti_csrftoken_a2z);
+            var setResponse = await client.PostAsync($"{link}/gp/delivery/ajax/address-change.html", content);
+            setResponse.EnsureSuccessStatusCode();
+            var responseText = await setResponse.Content.ReadAsStringAsync();
+
+            var data = new { isValidAddress = 0 };
+
+            data = JsonConvert.DeserializeAnonymousType(responseText, data);
+            if (data == null || data.isValidAddress != 1)
+            {
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -181,7 +247,8 @@ namespace AmazonRank.Core
             };
             HttpClient client = new HttpClient(handler);
             client.Timeout = new TimeSpan(0, 0, 1, 0);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
             client.DefaultRequestHeaders.Add("User-Agent", GetRandomUserAgent());
             client.DefaultRequestHeaders.Connection.Add("keep-alive");
@@ -192,19 +259,22 @@ namespace AmazonRank.Core
         /// 获取随机User-Agent
         /// </summary>
         /// <returns></returns>
-        public static string GetRandomUserAgent() {
+        public static string GetRandomUserAgent()
+        {
             var randomValue = GetConfigValue("Request.UserAgent.Random");
-            if (IsNullOrEmpty(randomValue)) {
+            if (IsNullOrEmpty(randomValue))
+            {
                 return GetConfigValue("Request.UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
             }
-            return randomValue.Replace("{{RandomValue}}", new Random().Next(60,76).ToString());
+            return randomValue.Replace("{{RandomValue}}", new Random().Next(60, 76).ToString());
         }
 
         /// <summary>
         /// 刷新User-Agent
         /// </summary>
         /// <param name="client"></param>
-        public static void RefreshRandomUserAgent(HttpClient client) {
+        public static void RefreshRandomUserAgent(HttpClient client)
+        {
             client.DefaultRequestHeaders.Remove("User-Agent");
             client.DefaultRequestHeaders.Add("User-Agent", GetRandomUserAgent());
         }
@@ -282,7 +352,7 @@ namespace AmazonRank.Core
             if (isCreated)
             {
                 outputAction($"初始化加载器...", true);
-                Result<object> initResult = await Utils.InitQueryAsync(client, countryModel.Link, countryModel.ZipCode);
+                Result<object> initResult = await Utils.InitQueryAsync(client, countryModel.Link, countryModel.ZipCode, outputAction);
                 if (!initResult.Success)
                 {
                     outputAction(initResult.Msg, false);

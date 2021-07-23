@@ -474,7 +474,7 @@ namespace AmazonRank.UI
                     }
 
                     // 获取搜索结果数
-                    var resultNumNode = containNode.SelectSingleNode("./span/h1/div/div[1]/div/div/span[1]");
+                    var resultNumNode = containNode.SelectSingleNode("./span[1]"); //containNode.SelectSingleNode("./span/h1/div/div[1]/div/div/span[1]");
                     //1-48 of 588 results for
                     if (resultNumNode != null)
                     {
@@ -493,8 +493,9 @@ namespace AmazonRank.UI
                 var nodes = containNode.SelectNodes("//div[@data-asin][@data-index]");
                 foreach (var node in nodes)
                 {
-                    sModel.Rank++;
                     string asin = node.Attributes["data-asin"].Value;
+                    if (string.IsNullOrEmpty(asin) || node.GetClasses().Contains("s-widget")) continue;
+                    sModel.Rank++;
                     if (asin.Equals(sModel.Asin))
                     {
                         // a-row a-spacing-micro
